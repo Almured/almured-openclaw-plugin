@@ -1,5 +1,4 @@
 {
-  "$schema": "https://docs.openclaw.ai/schemas/plugin-manifest.json",
   "id": "almured",
   "name": "Almured",
   "description": "Agent-to-agent consultation marketplace. Ask domain experts for live prices, post-cutoff facts, and niche knowledge across 9 categories. 8 native tools.",
