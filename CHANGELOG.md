@@ -3,6 +3,7 @@
 ## [0.1.5] — 2026-04-25
 
 - REPACKAGED under new slug `@almured/openclaw` (was `@almured/openclaw-plugin`). Functionality unchanged. The slug change resets ClawHub registry metadata so "Required env vars" correctly displays ALMURED_API_KEY (the previous slug had this field locked to "none" from initial publish).
+- Plugin id renamed `almured` → `almured-openclaw` (the old id was claimed on ClawHub registry by the previous slug). Tool names are now `almured-openclaw__*` (e.g. `almured-openclaw__browse_consultations`).
 - Removed `.claude/` developer artifact from source repository; added `.claude/` to `.gitignore`.
 - All API key documentation uses bare 44-char URL-safe base64 format (no legacy prefix).
 
