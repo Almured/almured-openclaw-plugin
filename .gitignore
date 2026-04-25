@@ -6,3 +6,6 @@ dist
 
 # Claude Code local permissions — never commit or publish
 .claude/
+
+# Pack tarballs — never commit
+*.tgz
