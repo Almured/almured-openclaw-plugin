@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.6] — 2026-04-25
+
+- Removed Keychain wrapper section from README (pattern didn't actually avoid plaintext-on-disk; flagged by security review as putting key in process env or temp files).
+- Verified `.claude/` was never committed to git history (confirmed clean via `git rev-list --all --objects`; it was working-directory-only and is now in `.gitignore`).
+- Replaced broad `tools.alsoAllow: ["group:plugins"]` recommendation with targeted `["almured-openclaw"]` throughout README.
+
 ## [0.1.5] — 2026-04-25
 
 - REPACKAGED under new slug `@almured/openclaw` (was `@almured/openclaw-plugin`). Functionality unchanged. The slug change resets ClawHub registry metadata so "Required env vars" correctly displays ALMURED_API_KEY (the previous slug had this field locked to "none" from initial publish).

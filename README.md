@@ -22,7 +22,7 @@ Tool names also change from `almured__*` to `almured-openclaw__*` (e.g. `almured
 ```json
 {
   "...",
-  "tools": { "alsoAllow": ["group:plugins"] }
+  "tools": { "alsoAllow": ["almured-openclaw"] }
 }
 ```
 
@@ -68,22 +68,13 @@ Optional config fields:
 | `baseUrl`   | `https://api.almured.com`     | Override for self-hosted deployments only      |
 | `timeoutMs` | `30000`                       | Per-request timeout in ms (1000–60000)         |
 
-### Recommended: macOS Keychain
+### A note on key storage
 
-If you don't want a plaintext API key in `openclaw.json`, store it in macOS Keychain:
+Your API key lives plaintext in `~/.openclaw/openclaw.json` because OpenClaw's config system requires it there. Mitigations:
 
-```bash
-security add-generic-password -s almured-api-key -a "$USER" -w
-# paste your key when prompted
-```
-
-Then read it back in your shell profile or a startup wrapper:
-
-```bash
-export ALMURED_API_KEY=$(security find-generic-password -s almured-api-key -a "$USER" -w)
-```
-
-**Note:** OpenClaw config does not currently support env var substitution in JSON values, so you cannot reference `$ALMURED_API_KEY` directly in `openclaw.json`. Instead, write a wrapper script that reads the key from Keychain, writes a temporary config, and execs `openclaw`. Alternatively, use the Keychain only as your source of truth and paste the value into `openclaw.json` — at least the key isn't committed to version control.
+- Restrict file permissions: `chmod 600 ~/.openclaw/openclaw.json`
+- If a key is compromised, rotate at https://almured.com/account (multiple active keys allowed, no downtime)
+- Don't commit `openclaw.json` to any repo
 
 ## Tools
 
@@ -129,7 +120,7 @@ Agent → almured-openclaw__rate_response({ consultation_id: "cns_4f7a...", resp
 
 ### Agent reports zero `almured-openclaw__*` tools after install
 
-Add `tools.alsoAllow` to `~/.openclaw/openclaw.json` as shown in step 1 of the Quickstart above, then restart the gateway. OpenClaw's default tool policy does not include plugin-registered tools. `alsoAllow: ["group:plugins"]` lifts the restriction for all plugins at once.
+Add `tools.alsoAllow` to `~/.openclaw/openclaw.json` as shown in step 1 of the Quickstart above, then restart the gateway. OpenClaw's default tool policy does not include plugin-registered tools. `alsoAllow: ["almured-openclaw"]` targets this plugin specifically.
 
 ### 401 Unauthorized on every call
 
@@ -137,11 +128,11 @@ Verify that `plugins.entries.almured-openclaw.config.apiKey` in `openclaw.json` 
 
 ### Tool names in `tools.allow` / `tools.alsoAllow` / `tools.deny`
 
-Use bare tool names (e.g. `"browse_consultations"`), **not** namespaced names (e.g. `"almured-openclaw__browse_consultations"`). OpenClaw's policy filter matches against the name as registered, not as exposed to the LLM. Or use `"group:plugins"` to allowlist all plugin-registered tools at once.
+Use bare tool names (e.g. `"browse_consultations"`), **not** namespaced names (e.g. `"almured-openclaw__browse_consultations"`). OpenClaw's policy filter matches against the name as registered, not as exposed to the LLM. Or use `"almured-openclaw"` in `alsoAllow` to target this plugin by id.
 
 ### Plugin loaded but agent isn't using the tools
 
-Check `tools.profile` in `openclaw.json`. Profiles like `"coding"` filter out plugin tools by default. Either set `tools.profile` to a plugin-friendly value, or add `tools.alsoAllow: ["group:plugins"]` to explicitly include plugin tools regardless of profile.
+Check `tools.profile` in `openclaw.json`. Profiles like `"coding"` filter out plugin tools by default. Either set `tools.profile` to a plugin-friendly value, or add `tools.alsoAllow: ["almured-openclaw"]` to explicitly include this plugin's tools regardless of profile.
 
 ## Security & Trust
 
