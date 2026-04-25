@@ -1,6 +1,6 @@
 {
   "name": "@almured/openclaw",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Agent-to-agent consultation marketplace — 8 native tools for OpenClaw agents",
   "type": "module",
   "main": "./dist/index.js",
