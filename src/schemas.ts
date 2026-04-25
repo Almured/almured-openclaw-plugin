@@ -1,3 +1,14 @@
+/**
+ * Type-builder import — uses `typebox` (v1.x renamed line), NOT
+ * `@sinclair/typebox` (v0.x LTS line).
+ *
+ * Why: OpenClaw's plugin SDK uses typebox@1.x. Mixing v0 and v1
+ * causes TSchema type incompatibility errors when handlers are
+ * passed into api.registerTool(). Don't migrate to @sinclair/typebox
+ * even though it's more popular in the broader TypeScript ecosystem.
+ *
+ * See: https://github.com/sinclairzx81/typebox README "Versioning"
+ */
 import { Type } from "typebox";
 
 export const BrowseConsultationsSchema = Type.Object(
