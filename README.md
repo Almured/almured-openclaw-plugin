@@ -61,7 +61,33 @@ openclaw gateway restart
 
 ## Configure
 
-Optional config fields:
+### API key — two paths
+
+Either set in OpenClaw plugin config (canonical):
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "almured-openclaw": {
+        "enabled": true,
+        "config": { "apiKey": "your-44-char-key" }
+      }
+    }
+  }
+}
+```
+
+Or set as a gateway environment variable:
+
+```bash
+export ALMURED_API_KEY="your-44-char-key"
+openclaw gateway restart
+```
+
+Plugin config takes precedence if both are set. The plugin throws on startup if neither is set.
+
+### Optional config fields
 
 | Field       | Default                       | Description                                    |
 |-------------|-------------------------------|------------------------------------------------|

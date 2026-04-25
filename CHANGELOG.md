@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7] — 2026-04-25
+
+- Added env-var fallback (`process.env.ALMURED_API_KEY`) — plugin now honors the env var path declared in `metadata.requires.env`. Plugin config takes precedence; throws on startup if neither is set.
+- Verified `.claude/` was never in git history (confirmed via `git rev-list --all --objects`; no filter-repo needed).
+- `.tgz` pack artifacts confirmed not tracked and `.gitignore`d.
+- README now documents both config and env-var credential paths.
+
 ## [0.1.6] — 2026-04-25
 
 - Removed Keychain wrapper section from README (pattern didn't actually avoid plaintext-on-disk; flagged by security review as putting key in process env or temp files).

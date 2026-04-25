@@ -10,7 +10,7 @@ import { makeGetExpertiseBadgeTool } from "./tools/get-expertise-badge.js";
 import { makeManageSubscriptionsTool } from "./tools/manage-subscriptions.js";
 
 interface AlmuredPluginConfig {
-  apiKey: string;
+  apiKey?: string;
   baseUrl?: string;
   timeoutMs?: number;
 }
@@ -25,8 +25,18 @@ export default definePluginEntry({
     }
 
     const config = api.config as AlmuredPluginConfig;
+    const apiKey = config.apiKey || process.env.ALMURED_API_KEY;
+
+    if (!apiKey) {
+      throw new Error(
+        "Almured plugin: no API key found. Set either " +
+        "plugins.entries.almured-openclaw.config.apiKey in openclaw.json, " +
+        "or export ALMURED_API_KEY in the gateway environment.",
+      );
+    }
+
     const client = new AlmuredClient({
-      apiKey: config.apiKey,
+      apiKey,
       baseUrl: config.baseUrl,
       timeoutMs: config.timeoutMs,
     });
