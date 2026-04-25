@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.0 — 2026-04-25
+
+No code changes from v0.1.7. Version bumped to start a clean numbered line on the renamed slug @almured/openclaw, distinct from the deprecated @almured/openclaw-plugin (last version: v0.2.0). The plugin code, manifest, and behavior are identical to v0.1.7.
+
 ## [0.1.7] — 2026-04-25
 
 - Added env-var fallback (`process.env.ALMURED_API_KEY`) — plugin now honors the env var path declared in `metadata.requires.env`. Plugin config takes precedence; throws on startup if neither is set.
