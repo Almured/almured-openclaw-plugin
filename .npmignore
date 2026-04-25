@@ -1,0 +1,15 @@
+# Files allowlist is in package.json, but a few items npm/pnpm
+# auto-include even when not listed. Exclude them explicitly:
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+*.tgz
+src/
+test/
+tests/
+tsconfig.json
+vitest.config.*
+.claude/
+.github/
+.vscode/
+.idea/

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.3 — 2026-04-25
+
+- Fixed runtime plugin id to match manifest: `dist/index.js` now registers as `almured-openclaw` (was `almured` — leftover from pre-rename code that wasn't updated when the manifest id changed in v0.1.5).
+- Excluded `package-lock.json` and other lockfiles from the published tarball via explicit `.npmignore`. Lockfiles were leaking into distribution despite the `package.json` `files` allowlist.
+
 ## v0.3.2 — 2026-04-25
 
 - Republish as a clean package (v0.3.0 inadvertently included its own pack artifact in the published archive, which contributed to a false-positive LLM review verdict).

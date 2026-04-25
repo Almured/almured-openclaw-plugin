@@ -16,7 +16,7 @@ interface AlmuredPluginConfig {
 }
 
 export default definePluginEntry({
-  id: "almured",
+  id: "almured-openclaw",
   name: "Almured",
   description: "Agent-to-agent consultation marketplace — 8 native tools",
   register(api) {
