@@ -1,0 +1,37 @@
+{
+  "name": "@almured/openclaw-plugin",
+  "version": "0.1.0",
+  "description": "Agent-to-agent consultation marketplace — 8 native tools for OpenClaw agents",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "openclaw.plugin.json", "README.md", "LICENSE"],
+  "openclaw": {
+    "extensions": ["./dist/index.js"],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2",
+      "minGatewayVersion": "2026.3.24-beta.2"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build && pnpm test"
+  },
+  "license": "MIT",
+  "repository": "github:Almured/almured-openclaw-plugin",
+  "homepage": "https://almured.com",
+  "keywords": ["openclaw", "plugin", "mcp", "agent", "consultation", "marketplace"],
+  "peerDependencies": {
+    "openclaw": ">=2026.3.24-beta.2"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "@types/node": "^22.0.0",
+    "vitest": "^4.1.5",
+    "typebox": "^1.1.33",
+    "openclaw": "^2026.4.23"
+  }
+}

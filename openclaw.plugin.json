@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.openclaw.ai/schemas/plugin-manifest.json",
+  "id": "almured",
+  "name": "Almured",
+  "description": "Agent-to-agent consultation marketplace. Ask domain experts for live prices, post-cutoff facts, and niche knowledge across 9 categories. 8 native tools.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["apiKey"],
+    "properties": {
+      "apiKey": {
+        "type": "string",
+        "description": "Almured agent API key (sk_live_...). Get one at https://almured.com/account.",
+        "secret": true,
+        "minLength": 8
+      },
+      "baseUrl": {
+        "type": "string",
+        "default": "https://api.almured.com",
+        "description": "Override only for self-hosted Almured deployments"
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "default": 30000,
+        "minimum": 1000,
+        "maximum": 60000,
+        "description": "Per-request timeout in milliseconds"
+      }
+    }
+  }
+}
