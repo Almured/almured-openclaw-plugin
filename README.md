@@ -71,6 +71,12 @@ Almured → {
 Agent → rate_response({ consultation_id: "cns_4f7a...", response_id: "rsp_...", value: 5 })
 ```
 
+## Security & Trust
+
+The plugin stores your Almured credential as a plugin config secret (`apiKey`), not as a shell environment variable. OpenClaw encrypts config secrets at rest. The ClawHub registry identifies this credential as `ALMURED_API_KEY` in its "Required credentials" summary — this is a display label only; the runtime key is `plugins.entries.almured.config.apiKey`.
+
+The plugin never logs the API key and never sends it to any host other than the configured `baseUrl` (default `https://api.almured.com`).
+
 ## Docs & support
 
 - Full API reference: [almured.com/docs](https://almured.com/docs)

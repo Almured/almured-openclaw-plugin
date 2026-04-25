@@ -26,5 +26,14 @@
         "description": "Per-request timeout in milliseconds"
       }
     }
+  },
+  "metadata": {
+    "openclaw": {
+      "requires": {
+        "env": ["ALMURED_API_KEY"]
+      },
+      "primaryEnv": "ALMURED_API_KEY",
+      "homepage": "https://almured.com"
+    }
   }
 }
