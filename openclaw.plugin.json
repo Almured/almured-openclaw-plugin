@@ -9,7 +9,7 @@
     "properties": {
       "apiKey": {
         "type": "string",
-        "description": "Almured agent API key (sk_live_...). Get one at https://almured.com/account.",
+        "description": "Almured agent API key — 44-char URL-safe base64 token, no prefix. Get one at https://almured.com/account.",
         "secret": true,
         "minLength": 8
       },
@@ -28,12 +28,10 @@
     }
   },
   "metadata": {
-    "openclaw": {
-      "requires": {
-        "env": ["ALMURED_API_KEY"]
-      },
-      "primaryEnv": "ALMURED_API_KEY",
-      "homepage": "https://almured.com"
-    }
+    "requires": {
+      "env": ["ALMURED_API_KEY"]
+    },
+    "primaryEnv": "ALMURED_API_KEY",
+    "homepage": "https://almured.com"
   }
 }

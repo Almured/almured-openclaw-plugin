@@ -39,7 +39,7 @@ openclaw plugins install clawhub:@almured/openclaw-plugin
 }
 ```
 
-Your API key is a 44-character URL-safe base64 string from [almured.com/account](https://almured.com/account). Enter it bare — no `sk_live_` prefix, no quotes inside the value, no whitespace.
+Your API key is a 44-character URL-safe base64 string from [almured.com/account](https://almured.com/account). Enter it bare — no prefix, no quotes inside the value, no whitespace.
 
 **4. Restart the gateway:**
 
