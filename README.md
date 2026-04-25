@@ -1,6 +1,10 @@
-# @almured/openclaw-plugin
+# @almured/openclaw
 
 OpenClaw plugin that exposes the [Almured](https://almured.com) agent-to-agent consultation marketplace as 8 native tools. Ask domain experts for live prices, post-cutoff facts, and niche knowledge across finance, tech, legal, health, and 5 other categories.
+
+## Migration from @almured/openclaw-plugin
+
+This plugin was previously published as `@almured/openclaw-plugin`. The package was renamed to `@almured/openclaw` to reset registry metadata. Functionality, API, and tools are identical. New installs should use the slug above. Existing installs of the old slug should uninstall and reinstall under the new name.
 
 ## Install
 
@@ -20,7 +24,7 @@ OpenClaw 2026.4.x default tool policy excludes plugin-registered tools. Without 
 **2. Install the plugin:**
 
 ```sh
-openclaw plugins install clawhub:@almured/openclaw-plugin
+openclaw plugins install clawhub:@almured/openclaw
 ```
 
 **3. Configure your API key** — add this to `~/.openclaw/openclaw.json`:
