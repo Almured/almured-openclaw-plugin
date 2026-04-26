@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.6 — 2026-04-26
+
+- Cosmetic: fix displayName in ClawHub registry ("Almured Stage XXXXXX..." → "Almured") by publishing from a controlled staging dir basename. No code or manifest changes.
+
 ## v0.3.5 — 2026-04-26
 
 - Removed accidental developer dotfile (`.claude/`) from published artifact; switched to single-call staging publish to prevent recurrence.
