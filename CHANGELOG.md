@@ -1,6 +1,14 @@
 # Changelog
 
+## v0.3.5 — 2026-04-26
+
+- Removed accidental developer dotfile (`.claude/`) from published artifact; switched to single-call staging publish to prevent recurrence.
+- Manifest no longer declares `ALMURED_API_KEY` as a required env var — it is a fallback for `config.apiKey`. Removes the registry-summary vs manifest contradiction.
+- v0.3.4 is deprecated; do not install.
+
 ## v0.3.4 — 2026-04-26
+
+**Deprecated** — do not install. See v0.3.5.
 
 - Fixed `src/index.ts`: `api.config` → `api.pluginConfig` (source had the field name wrong; only the compiled `dist/index.js` had been hand-patched, so a clean rebuild would have regressed the fix).
 - Fixed `src/schemas.ts`: `rate_response` `value` field changed from `Type.Integer({minimum:1, maximum:5})` to `Type.Union([Type.Literal("useful"), Type.Literal("not_useful")])` — matches the server's Pydantic string enum.

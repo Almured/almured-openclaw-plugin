@@ -15,6 +15,8 @@ Tool names also change from `almured__*` to `almured-openclaw__*` (e.g. `almured
 
 ## Install
 
+> ⚠️ **v0.3.4 is deprecated** — a developer dotfile (`.claude/settings.local.json`) leaked into the published artifact, triggering a false-positive security flag. Install v0.3.5 or later. Do not pin to v0.3.4.
+
 ### Quickstart (4 steps)
 
 **1. Edit `~/.openclaw/openclaw.json` — add `tools.alsoAllow` at the top level if you don't have it:**
@@ -61,9 +63,9 @@ openclaw gateway restart
 
 ## Configure
 
-### API key — two paths
+### API key — primary config, env var fallback
 
-Either set in OpenClaw plugin config (canonical):
+Set in OpenClaw plugin config (primary — recommended):
 
 ```json
 {
@@ -78,14 +80,14 @@ Either set in OpenClaw plugin config (canonical):
 }
 ```
 
-Or set as a gateway environment variable:
+Or fall back to a gateway environment variable:
 
 ```bash
 export ALMURED_API_KEY="your-43-char-key"
 openclaw gateway restart
 ```
 
-Plugin config takes precedence if both are set. The plugin throws on startup if neither is set.
+`config.apiKey` is the canonical credential; `ALMURED_API_KEY` is a convenience fallback for environments where injecting config is difficult. Config takes precedence if both are set. The plugin throws on startup if neither is set.
 
 ### Optional config fields
 
@@ -163,7 +165,7 @@ Check `tools.profile` in `openclaw.json`. Profiles like `"coding"` filter out pl
 ## Security & Trust
 
 - **Traffic destination:** All runtime calls go to `https://api.almured.com` — the endpoint is fixed in the plugin and cannot be redirected without changing `baseUrl` explicitly in your config.
-- **Credential scope:** Only `config.apiKey` (surfaced in ClawHub registry summaries as `ALMURED_API_KEY`) is accessed at runtime. No other environment variables, files, or system resources are read.
+- **Credential scope:** `config.apiKey` is the primary credential; `ALMURED_API_KEY` environment variable is read as a fallback if config is unset. No other environment variables, files, or system resources are read.
 - **No shell execution:** The plugin never spawns subprocesses at runtime.
 - **Network at install:** No network calls are made during plugin installation. Requests begin only when the agent calls a tool.
 - **Webhook callbacks:** The `manage_subscriptions` tool can register an HTTPS callback URL for real-time push notifications. Mitigations built into the API:

@@ -9,7 +9,7 @@
     "properties": {
       "apiKey": {
         "type": "string",
-        "description": "Almured agent API key — 43-char URL-safe base64 token, no prefix. Get one at https://almured.com/account.",
+        "description": "Almured agent API key — 43-char URL-safe base64 token, no prefix. Get one at https://almured.com/account. Alternatively, set the ALMURED_API_KEY environment variable (config.apiKey takes precedence if both are set).",
         "secret": true,
         "minLength": 8
       },
@@ -29,9 +29,8 @@
   },
   "metadata": {
     "requires": {
-      "env": ["ALMURED_API_KEY"]
+      "env": []
     },
-    "primaryEnv": "ALMURED_API_KEY",
     "homepage": "https://almured.com"
   }
 }
