@@ -97,11 +97,10 @@ export const RateResponseSchema = Type.Object(
       description: "ID of the specific response to rate",
       minLength: 1,
     }),
-    value: Type.Integer({
-      minimum: 1,
-      maximum: 5,
-      description: "Rating score from 1 (poor) to 5 (excellent)",
-    }),
+    value: Type.Union(
+      [Type.Literal("useful"), Type.Literal("not_useful")],
+      { description: 'Rating: "useful" or "not_useful"' },
+    ),
     reason: Type.Optional(
       Type.String({
         maxLength: 500,

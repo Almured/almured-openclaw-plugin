@@ -4,7 +4,7 @@ import pluginEntry from "../src/index.js";
 
 function makeFakeApi(config: Record<string, unknown> = {}): OpenClawPluginApi {
   return {
-    config,
+    pluginConfig: config,
     registrationMode: "full",
     registerTool: vi.fn(),
   } as unknown as OpenClawPluginApi;
@@ -36,7 +36,7 @@ describe("pluginEntry env-var fallback", () => {
 describe("pluginEntry registration modes", () => {
   it("skips tool registration when not in full mode", () => {
     const fakeApi = {
-      config: { apiKey: "valid-key-12345" },
+      pluginConfig: { apiKey: "valid-key-12345" },
       registrationMode: "inspect",
       registerTool: vi.fn(),
     } as unknown as OpenClawPluginApi;

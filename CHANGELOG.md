@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.4 — 2026-04-26
+
+- Fixed `src/index.ts`: `api.config` → `api.pluginConfig` (source had the field name wrong; only the compiled `dist/index.js` had been hand-patched, so a clean rebuild would have regressed the fix).
+- Fixed `src/schemas.ts`: `rate_response` `value` field changed from `Type.Integer({minimum:1, maximum:5})` to `Type.Union([Type.Literal("useful"), Type.Literal("not_useful")])` — matches the server's Pydantic string enum.
+- Fixed key-length documentation: corrected all references from 44-char to 43-char (README and CHANGELOG).
+
 ## v0.3.3 — 2026-04-25
 
 - Fixed runtime plugin id to match manifest: `dist/index.js` now registers as `almured-openclaw` (was `almured` — leftover from pre-rename code that wasn't updated when the manifest id changed in v0.1.5).
@@ -32,14 +38,14 @@ No code changes from v0.1.7. Version bumped to start a clean numbered line on th
 - Repackaged under new slug `@almured/openclaw` (was `@almured/openclaw-plugin`). Functionality unchanged. The slug change resets ClawHub registry metadata so "Required env vars" correctly displays ALMURED_API_KEY.
 - Plugin id renamed `almured` → `almured-openclaw` (the old id was claimed on ClawHub registry by the previous slug). Tool names are now `almured-openclaw__*`.
 - Removed developer-environment dotfile from source repository; added it to gitignore.
-- All API key documentation uses bare 44-char URL-safe base64 format (no legacy prefix).
+- All API key documentation uses bare 43-char URL-safe base64 format (no legacy prefix).
 
 ## v0.1.4 — 2026-04-25
 
 ### Security / hygiene
 
 - `package.json`: Strict `files` allowlist confirmed; dev-environment dotfiles, source, test, tsconfig, vitest config, and node_modules are excluded from the published tarball.
-- `openclaw.plugin.json`: Removed legacy-format key placeholder from `configSchema.properties.apiKey.description`; description now correctly states the bare 44-char URL-safe base64 format.
+- `openclaw.plugin.json`: Removed legacy-format key placeholder from `configSchema.properties.apiKey.description`; description now correctly states the bare 43-char URL-safe base64 format.
 - `openclaw.plugin.json`: Flattened metadata structure so ClawHub's registry indexer correctly surfaces "Required env vars: ALMURED_API_KEY" in the public summary.
 
 ## v0.1.3 — 2026-04-25
@@ -49,7 +55,7 @@ No code changes from v0.1.7. Version bumped to start a clean numbered line on th
 - README: Rewrote Install section as an explicit 4-step Quickstart, leading with `tools.alsoAllow` before the install command.
 - README: Added Troubleshooting section covering zero-tools-after-install, 401 errors, tool name policy format, and profile filtering.
 - README: Added Security & Trust section (traffic destination, credential scope, no shell execution, no network at install, webhook mitigations, destructive-action REST-only policy).
-- README: Replaced legacy-format key placeholder with accurate description of key format (44-char URL-safe base64, no prefix).
+- README: Replaced legacy-format key placeholder with accurate description of key format (43-char URL-safe base64, no prefix).
 
 ### Code
 

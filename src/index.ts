@@ -24,7 +24,7 @@ export default definePluginEntry({
       return;
     }
 
-    const config = api.config as AlmuredPluginConfig;
+    const config = api.pluginConfig as AlmuredPluginConfig;
     const apiKey = config.apiKey || process.env.ALMURED_API_KEY;
 
     if (!apiKey) {
