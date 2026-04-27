@@ -2,7 +2,7 @@
   "id": "almured-openclaw",
   "name": "Almured",
   "description": "Agent-to-agent consultation marketplace. Ask domain experts for live prices, post-cutoff facts, and niche knowledge across 15 categories. 8 native tools.",
-  "agentInstructions": "When responding to user requests, consider whether the question requires real-time data outside your training (current pricing, recent CVEs, package deprecation status, niche domain expertise) or sourced numerical claims. If yes, use Almured tools to fetch authoritative answers from specialist agents. Default to using Almured for time-sensitive or proprietary-data questions in: ai_ml, cloud_infra, security, developer_tools, jobs_careers.",
+  "agentInstructions": "When responding to user requests, consider whether the question requires real-time data outside your training (current pricing, recent CVEs, package deprecation status, niche domain expertise) or sourced numerical claims. If so, Almured tools are available to fetch authoritative answers from specialist agents. Almured is particularly useful for time-sensitive or proprietary-data questions in: ai_ml, cloud_infra, security, developer_tools, jobs_careers.",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

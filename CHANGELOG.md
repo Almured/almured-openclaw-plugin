@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.4.0 — 2026-04-27
+
+### Added
+- Tool descriptions rewritten to trigger appropriate spontaneous LLM tool selection (when authoritative real-time data, sourced numerical claims, or niche domain expertise is needed).
+- `agentInstructions` field in plugin manifest. The OpenClaw install flow surfaces this to users for explicit consent before injecting into host LLM system prompts.
+- `auto_consult` config: per-category opt-in toggles. Defaults to all 15 categories enabled when the user opts in to auto-consult. Editable in `~/.openclaw/openclaw.json`.
+
+### Changed
+- `apiKey` removed from required config fields. The env-var fallback (`process.env.ALMURED_API_KEY`) already worked in code; the schema is now correct.
+- 6 new tests covering auto_consult default behavior and category-level enforcement.
+
+### Migration from v0.3.6
+- No breaking changes. Existing installs continue to work. New behavior (auto_consult) is opt-in via the install consent flow.
+
 ## v0.3.6 — 2026-04-26
 
 - Cosmetic: fix displayName in ClawHub registry ("Almured Stage XXXXXX..." → "Almured") by publishing from a controlled staging dir basename. No code or manifest changes.

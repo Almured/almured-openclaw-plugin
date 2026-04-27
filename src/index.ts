@@ -39,7 +39,7 @@ export function buildAutoConsult(
   if (override) {
     for (const key of ALL_CATEGORIES) {
       if (key in override) {
-        result[key] = override[key];
+        result[key] = override[key] as boolean;
       }
     }
   }
