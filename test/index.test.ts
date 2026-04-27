@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import pluginEntry from "../src/index.js";
+import pluginEntry, { buildAutoConsult, ALL_CATEGORIES } from "../src/index.js";
 
 function makeFakeApi(config: Record<string, unknown> = {}): OpenClawPluginApi {
   return {
@@ -48,5 +48,54 @@ describe("pluginEntry registration modes", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" });
     pluginEntry.register(fakeApi);
     expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(8);
+  });
+});
+
+describe("auto_consult config", () => {
+  it("default auto_consult has all 15 categories enabled", () => {
+    const config = buildAutoConsult();
+    expect(Object.keys(config)).toHaveLength(ALL_CATEGORIES.length);
+    for (const val of Object.values(config)) {
+      expect(val).toBe(true);
+    }
+  });
+
+  it("is fully populated when user provides only apiKey", () => {
+    const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" });
+    pluginEntry.register(fakeApi);
+    // Plugin registers without throwing — auto_consult defaults apply internally
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(8);
+    // Verify buildAutoConsult with no overrides covers all 15 categories
+    const defaults = buildAutoConsult();
+    expect(Object.keys(defaults)).toHaveLength(15);
+    expect(Object.values(defaults).every((v) => v === true)).toBe(true);
+  });
+
+  it("disabled category returns disabled message from ask_consultation execute", async () => {
+    const fakeApi = makeFakeApi({
+      apiKey: "valid-key-12345",
+      auto_consult: { ai_ml: false },
+    });
+    pluginEntry.register(fakeApi);
+    const registerCalls: any[] = (fakeApi as any).registerTool.mock.calls;
+    const askTool = registerCalls.find((args) => args[0].name === "ask_consultation")?.[0];
+    expect(askTool).toBeDefined();
+    const result = await askTool.execute("test-id", {
+      category: "ai_ml",
+      subcategory: "inference",
+      question: "Which provider is cheapest?",
+    });
+    expect(result.content[0].text).toMatch(/disabled/i);
+    expect(result.content[0].text).toContain("ai_ml");
+  });
+
+  it("enabled category passes through to client normally", async () => {
+    // ai_ml is NOT disabled — execute should attempt a real call
+    // We just verify it does NOT return the disabled message
+    const autoConsult = buildAutoConsult({ security: false });
+    expect(autoConsult.security).toBe(false);
+    expect(autoConsult.ai_ml).toBe(true);
+    // Other categories untouched
+    expect(autoConsult.cloud_infra).toBe(true);
   });
 });

@@ -9,10 +9,48 @@ import { makeReportContentTool } from "./tools/report-content.js";
 import { makeGetExpertiseBadgeTool } from "./tools/get-expertise-badge.js";
 import { makeManageSubscriptionsTool } from "./tools/manage-subscriptions.js";
 
+export const ALL_CATEGORIES = [
+  "ai_ml",
+  "cloud_infra",
+  "databases",
+  "devops_sre",
+  "security",
+  "apis_and_integration",
+  "developer_tools",
+  "frontend",
+  "data_engineering",
+  "collectibles",
+  "digital_goods",
+  "books_manuscripts",
+  "domain_registry",
+  "jobs_careers",
+  "productivity_saas",
+] as const;
+
+export type CategoryKey = (typeof ALL_CATEGORIES)[number];
+
+/** Build the effective auto_consult map: all categories default to true. */
+export function buildAutoConsult(
+  override?: Record<string, boolean>,
+): Record<CategoryKey, boolean> {
+  const result = Object.fromEntries(
+    ALL_CATEGORIES.map((c) => [c, true]),
+  ) as Record<CategoryKey, boolean>;
+  if (override) {
+    for (const key of ALL_CATEGORIES) {
+      if (key in override) {
+        result[key] = override[key];
+      }
+    }
+  }
+  return result;
+}
+
 interface AlmuredPluginConfig {
   apiKey?: string;
   baseUrl?: string;
   timeoutMs?: number;
+  auto_consult?: Record<string, boolean>;
 }
 
 export default definePluginEntry({
@@ -41,10 +79,12 @@ export default definePluginEntry({
       timeoutMs: config.timeoutMs,
     });
 
+    const autoConsult = buildAutoConsult(config.auto_consult);
+
     api.registerTool(makeBrowseConsultationsTool(client));
     api.registerTool(makeBrowseUnansweredTool(client));
     api.registerTool(makeGetConsultationTool(client));
-    api.registerTool(makeAskConsultationTool(client));
+    api.registerTool(makeAskConsultationTool(client, autoConsult));
     api.registerTool(makeRateResponseTool(client));
     api.registerTool(makeReportContentTool(client));
     api.registerTool(makeGetExpertiseBadgeTool(client));

@@ -6,7 +6,7 @@ export function makeRateResponseTool(client: AlmuredClient) {
     name: "rate_response",
     label: "Rate Response",
     description:
-      "Rate a response to one of your consultations as \"useful\" or \"not_useful\". Ratings feed into the responding agent's expertise score. Requires authentication as the consultation owner.",
+      "Rate a response from another agent as 'useful' or 'not_useful'. Use this after retrieving a consultation's responses to provide quality feedback that compounds into the answering agent's expertise score in that category. Only the consultation's original asker can rate. 3-hour correction window after first rating.",
     parameters: RateResponseSchema,
     async execute(_toolCallId: string, params: Record<string, unknown>) {
       const text = await client.callTool("rate_response", params);

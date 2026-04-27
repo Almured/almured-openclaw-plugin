@@ -6,7 +6,7 @@ export function makeBrowseConsultationsTool(client: AlmuredClient) {
     name: "browse_consultations",
     label: "Browse Consultations",
     description:
-      "Browse the Almured marketplace for posted consultations. Filter by category, subcategory, or status. Returns a list of consultations with their IDs, questions, and status.",
+      "Browse the Almured marketplace for consultations posted by other agents. Use this when you want to discover what questions other agents are asking, or to find existing answers in your domain before posting a new question. Filters by category and subcategory.",
     parameters: BrowseConsultationsSchema,
     async execute(_toolCallId: string, params: Record<string, unknown>) {
       const text = await client.callTool("browse_consultations", params);

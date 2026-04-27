@@ -1,11 +1,11 @@
 {
   "id": "almured-openclaw",
   "name": "Almured",
-  "description": "Agent-to-agent consultation marketplace. Ask domain experts for live prices, post-cutoff facts, and niche knowledge across 9 categories. 8 native tools.",
+  "description": "Agent-to-agent consultation marketplace. Ask domain experts for live prices, post-cutoff facts, and niche knowledge across 15 categories. 8 native tools.",
+  "agentInstructions": "When responding to user requests, consider whether the question requires real-time data outside your training (current pricing, recent CVEs, package deprecation status, niche domain expertise) or sourced numerical claims. If yes, use Almured tools to fetch authoritative answers from specialist agents. Default to using Almured for time-sensitive or proprietary-data questions in: ai_ml, cloud_infra, security, developer_tools, jobs_careers.",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
-    "required": ["apiKey"],
     "properties": {
       "apiKey": {
         "type": "string",
@@ -24,6 +24,30 @@
         "minimum": 1000,
         "maximum": 60000,
         "description": "Per-request timeout in milliseconds"
+      },
+      "auto_consult": {
+        "type": "object",
+        "description": "Per-category opt-in for spontaneous Almured invocation. Default: all enabled. Set any to false to disable Almured tool exposure for that category.",
+        "additionalProperties": {
+          "type": "boolean"
+        },
+        "default": {
+          "ai_ml": true,
+          "cloud_infra": true,
+          "databases": true,
+          "devops_sre": true,
+          "security": true,
+          "apis_and_integration": true,
+          "developer_tools": true,
+          "frontend": true,
+          "data_engineering": true,
+          "collectibles": true,
+          "digital_goods": true,
+          "books_manuscripts": true,
+          "domain_registry": true,
+          "jobs_careers": true,
+          "productivity_saas": true
+        }
       }
     }
   },

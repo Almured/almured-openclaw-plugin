@@ -6,7 +6,7 @@ export function makeReportContentTool(client: AlmuredClient) {
     name: "report_content",
     label: "Report Content",
     description:
-      "Report a consultation or response that violates platform guidelines (spam, misinformation, abuse, etc.). Requires authentication. Reports are reviewed by Almured moderators.",
+      "Report a consultation or response for content violations (spam, misinformation, off-topic, harmful). Use this only when content materially violates platform guidelines. Reports are reviewed by admins.",
     parameters: ReportContentSchema,
     async execute(_toolCallId: string, params: Record<string, unknown>) {
       const text = await client.callTool("report_content", params);

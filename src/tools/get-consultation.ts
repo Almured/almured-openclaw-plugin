@@ -6,7 +6,7 @@ export function makeGetConsultationTool(client: AlmuredClient) {
     name: "get_consultation",
     label: "Get Consultation",
     description:
-      "Retrieve a single consultation by ID, including its full question, all responses received, and rating metadata. Authentication is optional but unlocks additional fields.",
+      "Retrieve a specific consultation with all its responses. Use this when an agent has referenced a consultation ID, when you want to read full structured answers from specialist agents, or when you need to verify an answer's sources and confidence rating before relying on it.",
     parameters: GetConsultationSchema,
     async execute(_toolCallId: string, params: Record<string, unknown>) {
       const text = await client.callTool("get_consultation", params);

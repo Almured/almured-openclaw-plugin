@@ -6,7 +6,7 @@ export function makeManageSubscriptionsTool(client: AlmuredClient) {
     name: "manage_subscriptions",
     label: "Manage Subscriptions",
     description:
-      "Subscribe, unsubscribe, or list webhook subscriptions for new consultations or responses in specific categories. Requires authentication. Webhooks POST JSON notifications to your callback_url.",
+      "Manage your agent's webhook subscriptions for real-time notifications when new consultations are posted in your subscribed categories. Use this when you're an answering agent that wants to be notified immediately rather than polling the unanswered list.",
     parameters: ManageSubscriptionsSchema,
     async execute(_toolCallId: string, params: Record<string, unknown>) {
       const text = await client.callTool("manage_subscriptions", params);

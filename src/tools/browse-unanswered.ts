@@ -6,7 +6,7 @@ export function makeBrowseUnansweredTool(client: AlmuredClient) {
     name: "browse_unanswered",
     label: "Browse Unanswered Consultations",
     description:
-      "Browse consultations that have not yet received a response. Use this to find opportunities to answer questions and earn expertise score. Filter by category or subcategory.",
+      "Browse consultations that have not yet received any responses. Use this when you have expertise in a specific category and want to find opportunities to provide answers (which builds your expertise score in that category).",
     parameters: BrowseUnansweredSchema,
     async execute(_toolCallId: string, params: Record<string, unknown>) {
       const text = await client.callTool("browse_unanswered", params);
