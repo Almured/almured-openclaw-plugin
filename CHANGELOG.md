@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.5.1 — 2026-05-15
+
+### Fixed
+
+- **Display name regression from v0.5.0.** v0.5.0 was published from a staging dir named `almured-openclaw-stage-v0.5.0`, which ClawHub Title-Cased into the registry display name ("Almured Openclaw Stage V0.5.0"). v0.5.1 republishes from a controlled basename `/tmp/almured` so the registry display name is "Almured" again. This is the same fix v0.3.6 applied; lesson reinforced in CHANGELOG. No code or behavior changes from the v0.5.0 tool set.
+
+### Added — ClawScan ASI mitigations
+
+- **ASI03 (Insecure Credentials Management):** `openclaw.plugin.json` now declares `ALMURED_API_KEY` in a new `metadata.optional_env_vars` field (with name + purpose) so users see the fallback credential path before install. The previous v0.3.5 removal of `ALMURED_API_KEY` from `metadata.requires.env` is preserved — the env var is a fallback for `config.apiKey`, not a hard requirement. `metadata.security` added pointing at `./SECURITY.md`.
+- **ASI07 (Insecure Output Handling):** No code change required; existing wrapper layer already parses JSON, extracts `result.content[].text`, and never returns shell-executable or raw-HTML content. Documented in SECURITY.md per-finding mitigation matrix. Webhook HMAC-SHA256 signing remains the operator-side integrity gate.
+- **ASI10 (Overreliance on Agent Output):** No code change required; `get_expertise_badge` already returns rating counts alongside scores. README now includes "What to share — and what NOT to share" and "Tool security classification" sections. SECURITY.md documents per-actor mitigation (plugin / calling agent / operator).
+- **ASI02 (Insufficient Permission Controls):** Investigated upstream feasibility of per-tool machine-readable read/write annotation. **Not feasible in v0.5.1** — the OpenClaw plugin SDK (`openclaw@2026.4.23`) does not expose a `readOnly` / `mutating` / `destructive` field on `AnyAgentTool`. Mitigation in v0.5.1 is documentation-only: wrapper descriptions consistently flag mutating tools in natural language; README "Tool security classification" section enumerates the read/write split for `tools.allow` / `tools.deny` configuration; SECURITY.md tracks the upstream SDK feature request. A future v0.5.x publish will adopt the annotation field once SDK supports it.
+
+### Added — documentation
+
+- **`SECURITY.md` (new file)** — disclosure policy (`general@almured.com` with `[SECURITY]` subject prefix until a dedicated mailbox is provisioned), per-finding ASI mitigation matrix (plugin / calling-agent / operator), supported-versions table, plugin security architecture summary.
+- **README "Tool security classification"** — read/write split for all 13 tools.
+- **README "Webhook lifecycle"** — subscribe / list / unsubscribe pattern, recommends explicit cleanup before agent terminates.
+- **README "What to share — and what NOT to share"** — guidance on PII, secrets, and confidential client data in consultations.
+- **README "API key handling"** — env var setup, rotation, storage guidance, reference to SECURITY.md.
+
+### Changed — README
+
+- L3 stale category wording (`finance, tech, legal, health, and 5 other categories`) replaced with current platform taxonomy phrasing (no count pinning per CLAUDE.md public-copy rule).
+- `package.json` `files` allowlist adds `SECURITY.md` so the new file ships with the package.
+
+### Migration from v0.5.0
+
+No code or schema changes. v0.5.1 is a drop-in replacement for v0.5.0 with a corrected display name and bundled security documentation. Tool behavior is identical.
+
 ## v0.5.0 — 2026-05-15
 
 ### Added — Phase 2-Infra tools (5 new wrappers, 8 → 13 total)

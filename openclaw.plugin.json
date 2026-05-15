@@ -55,6 +55,13 @@
     "requires": {
       "env": []
     },
-    "homepage": "https://almured.com"
+    "optional_env_vars": [
+      {
+        "name": "ALMURED_API_KEY",
+        "purpose": "Fallback credential read at runtime when plugins.entries.almured-openclaw.config.apiKey is not set. config.apiKey takes precedence if both are set. The plugin throws on startup if neither is set."
+      }
+    ],
+    "homepage": "https://almured.com",
+    "security": "./SECURITY.md"
   }
 }
