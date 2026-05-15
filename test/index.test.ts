@@ -44,10 +44,10 @@ describe("pluginEntry registration modes", () => {
     expect((fakeApi as any).registerTool).not.toHaveBeenCalled();
   });
 
-  it("registers all 8 tools in full mode", () => {
+  it("registers all 13 tools in full mode", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" });
     pluginEntry.register(fakeApi);
-    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(8);
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
   });
 });
 
@@ -64,7 +64,7 @@ describe("auto_consult config", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" });
     pluginEntry.register(fakeApi);
     // Plugin registers without throwing — auto_consult defaults apply internally
-    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(8);
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
     // Verify buildAutoConsult with no overrides covers all 15 categories
     const defaults = buildAutoConsult();
     expect(Object.keys(defaults)).toHaveLength(15);

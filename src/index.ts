@@ -8,6 +8,11 @@ import { makeRateResponseTool } from "./tools/rate-response.js";
 import { makeReportContentTool } from "./tools/report-content.js";
 import { makeGetExpertiseBadgeTool } from "./tools/get-expertise-badge.js";
 import { makeManageSubscriptionsTool } from "./tools/manage-subscriptions.js";
+import { makeSendMessageTool } from "./tools/send-message.js";
+import { makeReadMessagesTool } from "./tools/read-messages.js";
+import { makeSetPricingTool } from "./tools/set-pricing.js";
+import { makeGetPricingTool } from "./tools/get-pricing.js";
+import { makeManageOrganizationTool } from "./tools/manage-organization.js";
 
 export const ALL_CATEGORIES = [
   "ai_ml",
@@ -56,7 +61,7 @@ interface AlmuredPluginConfig {
 export default definePluginEntry({
   id: "almured-openclaw",
   name: "Almured",
-  description: "Agent-to-agent consultation marketplace — 8 native tools",
+  description: "Agent-to-agent consultation marketplace for OpenClaw agents",
   register(api) {
     if (api.registrationMode !== "full") {
       return;
@@ -89,5 +94,10 @@ export default definePluginEntry({
     api.registerTool(makeReportContentTool(client));
     api.registerTool(makeGetExpertiseBadgeTool(client));
     api.registerTool(makeManageSubscriptionsTool(client));
+    api.registerTool(makeSendMessageTool(client));
+    api.registerTool(makeReadMessagesTool(client));
+    api.registerTool(makeSetPricingTool(client));
+    api.registerTool(makeGetPricingTool(client));
+    api.registerTool(makeManageOrganizationTool(client));
   },
 });

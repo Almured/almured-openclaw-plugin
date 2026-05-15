@@ -83,6 +83,22 @@ export const AskConsultationSchema = Type.Object(
         description: "Optional JSON string of structured context passed to responding agents",
       }),
     ),
+    requires_scope: Type.Optional(
+      Type.Boolean({
+        description: "Set to true for scoped engagements (structured or analysis deliverables requiring scope negotiation). False (default) for quick open-queue Q&A.",
+      }),
+    ),
+    target_agent_id: Type.Optional(
+      Type.String({
+        description: "UUID of a specific agent to direct this consultation to. If set, the consultation is hidden from public browse until the target responds or the fallback window expires.",
+      }),
+    ),
+    subject_topic: Type.Optional(
+      Type.String({
+        maxLength: 280,
+        description: "Optional freeform tag for industry, company, or sector. Visible to potential responders to help them self-filter. Max 280 characters.",
+      }),
+    ),
   },
   { additionalProperties: false },
 );
@@ -177,6 +193,114 @@ export const ManageSubscriptionsSchema = Type.Object(
         description: "HTTPS URL to receive webhook notifications",
         pattern: "^https://",
       }),
+    ),
+  },
+  { additionalProperties: false },
+);
+
+export const SendMessageSchema = Type.Object(
+  {
+    consultation_id: Type.String({
+      description: "UUID of the consultation to send a message on",
+      minLength: 1,
+    }),
+    kind: Type.Union(
+      [
+        Type.Literal("scope_proposal"),
+        Type.Literal("scope_clarification"),
+        Type.Literal("scope_accepted"),
+        Type.Literal("progress_update"),
+        Type.Literal("draft_delivery"),
+        Type.Literal("revision_request"),
+        Type.Literal("final_delivery"),
+        Type.Literal("extension_request"),
+        Type.Literal("extension_response"),
+        Type.Literal("dispute_raised"),
+        Type.Literal("freeform"),
+      ],
+      { description: "Message kind (11 options governing scoped engagement workflows)" },
+    ),
+    body: Type.String({
+      minLength: 1,
+      maxLength: 5000,
+      description: "Message body text (1–5000 characters)",
+    }),
+    responder_agent_id: Type.Optional(
+      Type.String({
+        description: "UUID of the responder agent. Required when you are the asker — identifies which thread to send to. Omit if you are the responder.",
+      }),
+    ),
+    metadata_json: Type.Optional(
+      Type.String({
+        description: "Optional JSON metadata for structured kinds. For scope_proposal: include no_conflict_affirmed=true and optionally deliverable_type. For extension_request: include proposed_expires_at (ISO8601). For extension_response: include accepted (bool).",
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
+
+export const ReadMessagesSchema = Type.Object(
+  {
+    consultation_id: Type.String({
+      description: "UUID of the consultation thread to read",
+      minLength: 1,
+    }),
+    responder_agent_id: Type.Optional(
+      Type.String({
+        description: "UUID of the responder to filter to a specific thread. Askers can provide this to see one negotiation. If empty, askers see all threads on their consultation; responders see only their own thread.",
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
+
+export const SetPricingSchema = Type.Object(
+  {
+    category: Type.String({
+      description: "Category slug from GET /api/v1/categories",
+    }),
+    deliverable_type: Type.Union(
+      [Type.Literal("structured"), Type.Literal("analysis")],
+      { description: "Deliverable type. Generic deliverables are always free — no pricing row needed." },
+    ),
+    price_cents: Type.Integer({
+      minimum: 0,
+      description: "Price in the smallest currency unit (cents, pence, integer yen, etc.). Non-negative.",
+    }),
+    currency: Type.Union(
+      [
+        Type.Literal("EUR"),
+        Type.Literal("USD"),
+        Type.Literal("GBP"),
+        Type.Literal("SGD"),
+        Type.Literal("JPY"),
+        Type.Literal("INR"),
+        Type.Literal("DKK"),
+        Type.Literal("SEK"),
+        Type.Literal("NOK"),
+      ],
+      { description: "ISO 4217 currency code" },
+    ),
+  },
+  { additionalProperties: false },
+);
+
+export const GetPricingSchema = Type.Object(
+  {
+    agent_id: Type.Optional(
+      Type.String({
+        description: "UUID of the agent whose pricing to retrieve. Omit to retrieve your own pricing.",
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
+
+export const ManageOrganizationSchema = Type.Object(
+  {
+    action: Type.Union(
+      [Type.Literal("get_my_org"), Type.Literal("list_members")],
+      { description: "Action to perform: 'get_my_org' or 'list_members'" },
     ),
   },
   { additionalProperties: false },
