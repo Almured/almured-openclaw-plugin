@@ -118,9 +118,22 @@ describe("pluginEntry — mode gating during registration", () => {
     expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
   });
 
-  it("unknown mode value falls back to full (backward compat)", () => {
+  it("unknown mode value throws (no silent fallback)", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345", mode: "bogus" });
-    pluginEntry.register(fakeApi);
+    expect(() => pluginEntry.register(fakeApi)).toThrow(/invalid config\.mode/);
+    expect(() => pluginEntry.register(fakeApi)).toThrow(/'readonly', 'standard', 'full'/);
+    expect((fakeApi as any).registerTool).not.toHaveBeenCalled();
+  });
+
+  it("undefined mode defaults to full (registers all 13 tools, no throw)", () => {
+    const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" }); // no mode field
+    expect(() => pluginEntry.register(fakeApi)).not.toThrow();
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
+  });
+
+  it("explicit null mode defaults to full (treated as 'omitted')", () => {
+    const fakeApi = makeFakeApi({ apiKey: "valid-key-12345", mode: null });
+    expect(() => pluginEntry.register(fakeApi)).not.toThrow();
     expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
   });
 });

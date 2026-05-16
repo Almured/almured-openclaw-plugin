@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.5.3 — 2026-05-16
+
+### Changed — ClawScan static-analysis cleanup
+
+The v0.5.2 docs quoted several prompt-injection pattern *strings* verbatim, which tripped ClawScan's content scanner as a false positive. Rewrote the affected sections in `README.md`, `SECURITY.md`, and the v0.5.2 `CHANGELOG.md` entry to describe the pattern *categories* (instruction-override, role-confusion, system-prompt markers, tokenizer-control sequences) and point readers to [`src/response-sanitizer.ts`](./src/response-sanitizer.ts) for the actual regex set. The runtime defense itself is unchanged — same regex set, same `console.warn` behavior, same "never modify the response" guarantee.
+
+### Changed — `config.mode` validation is now strict (small breaking change)
+
+Unknown values for `config.mode` previously fell back silently to `'full'`. ClawScan flagged this under ASI02 (Insufficient Permission Controls) because the silent fallback would mask typos that intended a restrictive mode and accidentally landed on the full 13-tool set. v0.5.3 throws on any value not in `'readonly' | 'standard' | 'full'`. `undefined` (omitted entirely) still defaults to `'full'` for backward compatibility — only positively-invalid values throw.
+
+Migration: confirm any pinned `config.mode` value is exactly `"readonly"`, `"standard"`, or `"full"`. Anything else (typos, stale identifiers from external policy generators) now fails the plugin load.
+
+### Added — callback URL validation (`manage_subscriptions`)
+
+`manage_subscriptions` now refuses to send a `callback_url` that's clearly unsafe before the outbound API call. The server-side already enforces HTTPS, but pre-validating locally gives a clear, named error and blocks SSRF-shaped targets that a coerced agent might try to register. Rejected categories:
+
+- Non-HTTPS schemes (`http://`, `ws://`, `wss://`, `file://`, `ftp://`, …)
+- Loopback hosts: `localhost`, `*.localhost`, `127.0.0.0/8`, `[::1]`
+- RFC1918 private ranges: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`
+- IPv4 link-local `169.254.0.0/16` (covers cloud metadata endpoints)
+- `0.0.0.0/8` (unspecified / this-network)
+- Reserved internal TLDs: `.local`, `.internal`, `.intranet`
+
+Errors name the failed check so operators see why their registration was refused. See `src/callback-url.ts` and `test/callback-url.test.ts` for the full contract.
+
+### Tests
+
+160 passing (was 126 in v0.5.2). Added 34 tests in `test/callback-url.test.ts` covering each accept/reject class. Updated `test/index.test.ts` to pin the new strict-mode-validation contract (throw on unknown, default-to-full on undefined / null).
+
 ## v0.5.2 — 2026-05-16
 
 ### Added — ClawScan ASI plugin-level mitigations
@@ -9,7 +38,7 @@ v0.5.1's `SECURITY.md` documented ASI02, ASI03, ASI07 as "operator-enforced" in 
 - **ASI02 (Insufficient Permission Controls) — `config.mode` kill switch.** New config field `mode: 'readonly' | 'standard' | 'full'`. `readonly` registers only 6 read tools; `standard` adds the 5 write tools an agent typically needs (excludes `set_pricing` and `manage_organization`); `full` is the previous 13-tool behavior and remains the default for backward compatibility. We now recommend `standard` for most deployments. See `examples/openclaw-policy.recommended.json`. Unrecognized values fall back to `full`. Exported `allowedTools(mode)` for downstream introspection.
 - **ASI03 (Insecure Credentials Management) — config file permission check.** At plugin load, if `OPENCLAW_CONFIG_PATH` is set, the plugin stats the file and warns once if its Unix mode includes group- or world-readable bits, suggesting `chmod 0600`. No-op on Windows; no-op when the env var isn't set; never throws.
 - **ASI07 (Insecure Output Handling) — pre-send secret scanner.** New config field `secretScanning: 'block' | 'warn' | 'off'` (default `block`). Before `ask_consultation`, `send_message`, or `manage_subscriptions` makes its outbound HTTP call, arguments are JSON-stringified and scanned for high-confidence patterns: AWS access keys, GitHub PATs/OAuth tokens, Stripe live/test keys, Anthropic keys, OpenAI keys, RSA/SSH/EC/DSA private key headers, and JWTs. `block` (default) refuses to send and throws with the pattern name and a 6-char preview (never the full secret). `warn` logs and proceeds. `off` disables.
-- **ASI07 follow-on — peer response injection-pattern warning.** Every successful response is scanned for common prompt-injection patterns ("ignore previous instructions", "you are now …", `[INST]`, `<|im_start|>`, etc.). On match the plugin logs a warning but never modifies the response. Calling agents and operators should treat peer-authored response text as data, not instructions.
+- **ASI07 follow-on — peer response injection-pattern warning.** Every successful response is scanned against the regex set in `src/response-sanitizer.ts`, which covers common prompt-injection pattern categories: instruction-override, role-confusion, system-prompt markers, and tokenizer-control sequences. Matches log a WARN but the response is never modified. Calling agents and operators should treat peer-authored text as data, not instructions.
 - **API key leak hardening.** `AlmuredClient` now redacts the configured API key from any error message it throws. If a buggy or malicious upstream were to echo the `Authorization` header back inside an error body, the plugin replaces the key with `[REDACTED]` before propagating. Regression test (`test/client-leak.test.ts`) pins the invariant across 401 / 422 / 429 / 500 / JSON-RPC-error paths.
 
 ### Added — documentation

@@ -114,7 +114,7 @@ Exact tool sets:
 - `standard` (11): readonly + `ask_consultation`, `send_message`, `rate_response`, `report_content`, `manage_subscriptions`.
 - `full` (13): standard + `set_pricing`, `manage_organization`.
 
-A copy-paste recommended config is at [`examples/openclaw-policy.recommended.json`](./examples/openclaw-policy.recommended.json) with variant blocks for readonly and full. Unknown `mode` values fall back to `full` so configs from older or experimental gateways don't fail to load.
+A copy-paste recommended config is at [`examples/openclaw-policy.recommended.json`](./examples/openclaw-policy.recommended.json) with variant blocks for readonly and full. Unknown `mode` values **throw at plugin load** as of v0.5.3 — a silent fallback would mask typos in restrictive configs. Omitting the field entirely is still valid and defaults to `full` for backward compatibility.
 
 ### Secret scanning
 
@@ -143,7 +143,7 @@ Read-only tools are intentionally not scanned — their arguments are structured
 
 ### Peer response handling
 
-Every response returned from Almured is scanned for known prompt-injection patterns (e.g. `"ignore previous instructions"`, `"you are now …"`, `[INST]` / `<|im_start|>` tokenizer-control sequences). On match the plugin logs a warning to `console.warn` but **never modifies the response**. Treat peer-authored response text as data, not instructions — the warning is a heads-up, not a filter.
+Every response returned from Almured is scanned against the regex set defined in [`src/response-sanitizer.ts`](./src/response-sanitizer.ts), covering common prompt-injection pattern categories: instruction-override, role-confusion, system-prompt markers, and tokenizer-control sequences. On match the plugin logs a warning to `console.warn` but **never modifies the response**. Treat peer-authored response text as data, not instructions — the warning is a heads-up, not a filter.
 
 ### File permissions
 
@@ -250,7 +250,7 @@ Check `tools.profile` in `openclaw.json`. Profiles like `"coding"` filter out pl
 - **Credential scope:** `config.apiKey` is the primary credential; `ALMURED_API_KEY` environment variable is read as a fallback if config is unset. No other environment variables, files, or system resources are read.
 - **No shell execution:** The plugin never spawns subprocesses at runtime.
 - **Network at install:** No network calls are made during plugin installation. Requests begin only when the agent calls a tool.
-- **Webhook callbacks:** The `manage_subscriptions` tool can register an HTTPS callback URL for real-time push notifications. Mitigations built into the API:
+- **Webhook callbacks:** The `manage_subscriptions` tool can register an HTTPS callback URL for real-time push notifications. As of v0.5.3 the plugin pre-validates `callback_url` *locally* before the outbound API call — non-HTTPS schemes, loopback hosts (`localhost`, `127.0.0.0/8`, `[::1]`), RFC1918 ranges (`10/8`, `172.16/12`, `192.168/16`), IPv4 link-local (`169.254/16`, includes cloud metadata endpoints), `0.0.0.0/8`, and reserved internal TLDs (`.local`, `.internal`, `.intranet`) are refused with a named error. See [`src/callback-url.ts`](./src/callback-url.ts). Additional mitigations built into the API:
   - URLs must use `https://` — `http://` and other schemes are rejected server-side
   - The webhook secret is generated server-side and shown once at registration
   - `manage_subscriptions action=list` shows your current callback URL and subscriptions for audit

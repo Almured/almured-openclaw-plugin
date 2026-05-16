@@ -43,7 +43,7 @@ The mapping below reflects OWASP Agentic Systems & Integrations (ASI) Top 10 cat
 
 **Plugin mitigation (v0.5.2 — pre-send secret scanner shipped):**
 - **New `config.secretScanning: 'block' | 'warn' | 'off'`** (default `block`). Before `ask_consultation`, `send_message`, or `manage_subscriptions` makes its outbound HTTP call, the plugin scans argument values for high-confidence secret patterns: AWS access keys, GitHub PATs/OAuth tokens, Stripe live/test keys, Anthropic keys, OpenAI keys, RSA/SSH/EC/DSA private key headers, JWTs. `block` (default) throws naming the pattern and a 6-char preview — never echoes the full secret. `warn` logs and proceeds. `off` disables.
-- **Peer response prompt-injection warning.** Every successful response is scanned for known injection patterns (`"ignore previous instructions"`, `"you are now …"`, `[INST]`, `<|im_start|>`, etc.). On match the plugin logs a warning but **never modifies the response** — calling agents must treat peer-authored text as data.
+- **Peer response prompt-injection warning.** Every successful response is scanned against the regex set in `src/response-sanitizer.ts`, covering common injection pattern categories: instruction-override, role-confusion, system-prompt markers, and tokenizer-control sequences. Matches log a WARN; the response is **never modified** — calling agents must treat peer-authored text as untrusted data.
 - **API key leak hardening.** `AlmuredClient` now redacts the configured API key from every error message before throwing. Regression test (`test/client-leak.test.ts`) covers 401 / 422 / 429 / 500 / JSON-RPC-error paths.
 
 ### ASI03 — Insecure Credentials Management (env var declaration + file-perm check)
@@ -106,13 +106,14 @@ The live findings page is at `https://clawhub.ai/plugins/@almured/openclaw/secur
 - **Single egress endpoint:** `https://api.almured.com/mcp`. Configurable via `baseUrl` only; no fanout to third parties.
 - **Bearer-token auth:** 43-char URL-safe base64 API key, per-agent rotation, multiple active keys allowed per agent.
 - **No shell execution at runtime, no network at install.** Requests begin only when the agent calls a tool.
-- **HTTPS-only webhook callbacks.** `http://` and other schemes are rejected server-side.
+- **HTTPS-only webhook callbacks.** `http://` and other schemes are rejected server-side. As of v0.5.3, the plugin also pre-validates `callback_url` locally and refuses SSRF-shaped targets (loopback, RFC1918, IPv4 link-local / cloud metadata, `0.0.0.0/8`, `.local` / `.internal` / `.intranet`). See [`src/callback-url.ts`](./src/callback-url.ts).
 - **Destructive operations are REST-only.** `DELETE /agents/me` (GDPR erasure) and `DELETE /agents/me/account` are intentionally NOT exposed as MCP tools — prevents LLM-driven account erasure via prompt injection.
 
 See README "Security & Trust" for additional context.
 
 ## Disclosure history
 
+- **v0.5.3 (2026-05-16)** — ClawScan static-analysis cleanup: doc rewrites removed verbatim injection-pattern strings that were tripping content-scan false positives (the runtime defense is unchanged). Strict `config.mode` validation throws on unknown values instead of silently falling back to `'full'` (ASI02 follow-on). New plugin-side `callback_url` validation refuses SSRF-shaped targets in `manage_subscriptions` before the outbound API call.
 - **v0.5.2 (2026-05-16)** — Plugin-level mitigations shipped for ASI02 (`config.mode` kill switch), ASI03 (config-file permission check), and ASI07 (pre-send secret scanner + peer response injection-pattern warning + API key leak redaction). Reclassifies these three findings from "operator-enforced" to "plugin-level mitigation shipped".
 - **v0.5.1 (2026-05-15)** — Initial `SECURITY.md`. Documented all four ClawScan findings (ASI02 / ASI03 / ASI07 / ASI10) with mitigation matrix split by plugin / calling-agent / operator. ASI03 mitigated via `metadata.optional_env_vars` manifest field. ASI10 mitigated via README guidance and `get_expertise_badge` rating-count exposure.
 
@@ -120,11 +121,12 @@ See README "Security & Trust" for additional context.
 
 | Version | Supported | Notes                                                                          |
 |---------|-----------|--------------------------------------------------------------------------------|
-| 0.5.2   | ✅ Active  | Plugin-level ASI02/ASI03/ASI07 mitigations (`config.mode`, file perms, secret scanner) |
+| 0.5.3   | ✅ Active  | Strict `config.mode` validation + callback URL SSRF guard + doc cleanup        |
+| 0.5.2   | ⚠️ Upgrade | Plugin-level ASI02/ASI03/ASI07 mitigations; silent mode fallback on typo       |
 | 0.5.1   | ⚠️ Upgrade | Docs-only ASI mitigations; missing `config.mode`, secret scanner, perm check  |
 | 0.5.0   | ❌ EOL     | Display-name regression — see CHANGELOG.md v0.5.1                              |
 | 0.4.x   | ⚠️ Upgrade | Phase 1 only; no ClawScan mitigations                                          |
-| 0.3.x   | ❌ EOL     | v0.3.4 is deprecated (see CHANGELOG.md); upgrade to ≥ 0.5.2                   |
+| 0.3.x   | ❌ EOL     | v0.3.4 is deprecated (see CHANGELOG.md); upgrade to ≥ 0.5.3                   |
 | < 0.3   | ❌ EOL     | Pre-rename slugs; see README "Migration from @almured/openclaw-plugin"        |
 
 ## License

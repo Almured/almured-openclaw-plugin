@@ -81,9 +81,14 @@ export function allowedTools(mode: PluginMode): Set<string> {
 }
 
 function resolveMode(raw: unknown): PluginMode {
+  if (raw === undefined || raw === null) return "full";
   if (raw === "readonly" || raw === "standard" || raw === "full") return raw;
-  // Backward compat: omitted or unrecognized → full (matches v0.5.1 behavior).
-  return "full";
+  // Fail-fast on unknown values. Silent fallback masked typos / stale configs
+  // that intended a restrictive mode but landed on full by accident — flagged
+  // by ClawScan ASI02.
+  throw new Error(
+    `Almured plugin: invalid config.mode ${JSON.stringify(raw)}. Valid values: 'readonly', 'standard', 'full' (omit for default 'full').`,
+  );
 }
 
 function resolveSecretScanning(raw: unknown): SecretScanMode {
