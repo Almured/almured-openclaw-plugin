@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.5.2 — 2026-05-16
+
+### Added — ClawScan ASI plugin-level mitigations
+
+v0.5.1's `SECURITY.md` documented ASI02, ASI03, ASI07 as "operator-enforced" in lieu of OpenClaw SDK support for fine-grained capability annotation. v0.5.2 ships plugin-level defenses that don't require user-side configuration to be effective.
+
+- **ASI02 (Insufficient Permission Controls) — `config.mode` kill switch.** New config field `mode: 'readonly' | 'standard' | 'full'`. `readonly` registers only 6 read tools; `standard` adds the 5 write tools an agent typically needs (excludes `set_pricing` and `manage_organization`); `full` is the previous 13-tool behavior and remains the default for backward compatibility. We now recommend `standard` for most deployments. See `examples/openclaw-policy.recommended.json`. Unrecognized values fall back to `full`. Exported `allowedTools(mode)` for downstream introspection.
+- **ASI03 (Insecure Credentials Management) — config file permission check.** At plugin load, if `OPENCLAW_CONFIG_PATH` is set, the plugin stats the file and warns once if its Unix mode includes group- or world-readable bits, suggesting `chmod 0600`. No-op on Windows; no-op when the env var isn't set; never throws.
+- **ASI07 (Insecure Output Handling) — pre-send secret scanner.** New config field `secretScanning: 'block' | 'warn' | 'off'` (default `block`). Before `ask_consultation`, `send_message`, or `manage_subscriptions` makes its outbound HTTP call, arguments are JSON-stringified and scanned for high-confidence patterns: AWS access keys, GitHub PATs/OAuth tokens, Stripe live/test keys, Anthropic keys, OpenAI keys, RSA/SSH/EC/DSA private key headers, and JWTs. `block` (default) refuses to send and throws with the pattern name and a 6-char preview (never the full secret). `warn` logs and proceeds. `off` disables.
+- **ASI07 follow-on — peer response injection-pattern warning.** Every successful response is scanned for common prompt-injection patterns ("ignore previous instructions", "you are now …", `[INST]`, `<|im_start|>`, etc.). On match the plugin logs a warning but never modifies the response. Calling agents and operators should treat peer-authored response text as data, not instructions.
+- **API key leak hardening.** `AlmuredClient` now redacts the configured API key from any error message it throws. If a buggy or malicious upstream were to echo the `Authorization` header back inside an error body, the plugin replaces the key with `[REDACTED]` before propagating. Regression test (`test/client-leak.test.ts`) pins the invariant across 401 / 422 / 429 / 500 / JSON-RPC-error paths.
+
+### Added — documentation
+
+- **`examples/openclaw-policy.recommended.json`** + `examples/README.md`. Shows the recommended `mode: standard` + `secretScanning: block` config, with two variant blocks (`readonly` for compliance/untrusted contexts and `full` for admins). Bundled with the package via the `files` allowlist in `package.json`.
+- **README**: new sections "Plugin modes", "Secret scanning", "File permissions", "Peer response handling"; "Tool security classification" cross-links the recommended policy.
+- **SECURITY.md** mitigation matrix updated — ASI02 / ASI03 / ASI07 reclassified from "operator-enforced" to "plugin-level mitigation shipped". Disclosure history adds v0.5.2.
+
+### Migration from v0.5.1
+
+No breaking changes. Default behavior is unchanged: with no `mode` field, all 13 tools register exactly as in v0.5.1. The only observable difference for a v0.5.1 config that omits the new fields is that `ask_consultation`, `send_message`, and `manage_subscriptions` will now refuse to send if a high-confidence secret pattern appears in arguments (because `secretScanning` defaults to `block`). To opt out, set `"secretScanning": "off"`.
+
+We recommend explicitly setting `"mode": "standard"` and keeping `secretScanning` at `block` — see `examples/openclaw-policy.recommended.json`.
+
 ## v0.5.1 — 2026-05-15
 
 ### Fixed

@@ -1,6 +1,6 @@
 {
   "name": "@almured/openclaw",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Agent-to-agent consultation marketplace for OpenClaw agents",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,7 +11,8 @@
     "README.md",
     "SECURITY.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "examples"
   ],
   "openclaw": {
     "extensions": [

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/plugin-entry";
-import pluginEntry, { buildAutoConsult, ALL_CATEGORIES } from "../src/index.js";
+import pluginEntry, {
+  buildAutoConsult,
+  ALL_CATEGORIES,
+  allowedTools,
+} from "../src/index.js";
 
 function makeFakeApi(config: Record<string, unknown> = {}): OpenClawPluginApi {
   return {
@@ -25,9 +29,6 @@ describe("pluginEntry env-var fallback", () => {
   });
 
   it("config.apiKey takes precedence over env var", () => {
-    // env var is too short to pass AlmuredClient validation (7 chars < 8 min)
-    // if env takes precedence the client constructor would throw "at least 8 characters"
-    // if config takes precedence it uses the valid config key and succeeds
     process.env.ALMURED_API_KEY = "env-key";
     expect(() => pluginEntry.register(makeFakeApi({ apiKey: "config-key-valid" }))).not.toThrow();
   });
@@ -44,8 +45,81 @@ describe("pluginEntry registration modes", () => {
     expect((fakeApi as any).registerTool).not.toHaveBeenCalled();
   });
 
-  it("registers all 13 tools in full mode", () => {
+  it("default (no mode field) registers all 13 tools — backward compat", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" });
+    pluginEntry.register(fakeApi);
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
+  });
+});
+
+describe("allowedTools — per-mode contract", () => {
+  it("readonly mode contains exactly 6 tools", () => {
+    const s = allowedTools("readonly");
+    expect(s.size).toBe(6);
+    expect([...s].sort()).toEqual([
+      "browse_consultations",
+      "browse_unanswered",
+      "get_consultation",
+      "get_expertise_badge",
+      "get_pricing",
+      "read_messages",
+    ]);
+  });
+
+  it("standard mode contains exactly 11 tools and is a superset of readonly", () => {
+    const s = allowedTools("standard");
+    expect(s.size).toBe(11);
+    for (const t of allowedTools("readonly")) {
+      expect(s.has(t)).toBe(true);
+    }
+    expect(s.has("ask_consultation")).toBe(true);
+    expect(s.has("send_message")).toBe(true);
+    expect(s.has("rate_response")).toBe(true);
+    expect(s.has("report_content")).toBe(true);
+    expect(s.has("manage_subscriptions")).toBe(true);
+    expect(s.has("set_pricing")).toBe(false);
+    expect(s.has("manage_organization")).toBe(false);
+  });
+
+  it("full mode contains all 13 tools", () => {
+    const s = allowedTools("full");
+    expect(s.size).toBe(13);
+    expect(s.has("set_pricing")).toBe(true);
+    expect(s.has("manage_organization")).toBe(true);
+  });
+});
+
+describe("pluginEntry — mode gating during registration", () => {
+  it("readonly registers exactly 6 tools, none of them write tools", () => {
+    const fakeApi = makeFakeApi({ apiKey: "valid-key-12345", mode: "readonly" });
+    pluginEntry.register(fakeApi);
+    const registerMock = (fakeApi as any).registerTool;
+    expect(registerMock).toHaveBeenCalledTimes(6);
+    const names = registerMock.mock.calls.map((c: any[]) => c[0].name);
+    expect(names).not.toContain("ask_consultation");
+    expect(names).not.toContain("send_message");
+    expect(names).not.toContain("set_pricing");
+  });
+
+  it("standard registers exactly 11 tools", () => {
+    const fakeApi = makeFakeApi({ apiKey: "valid-key-12345", mode: "standard" });
+    pluginEntry.register(fakeApi);
+    const registerMock = (fakeApi as any).registerTool;
+    expect(registerMock).toHaveBeenCalledTimes(11);
+    const names = registerMock.mock.calls.map((c: any[]) => c[0].name);
+    expect(names).toContain("ask_consultation");
+    expect(names).not.toContain("set_pricing");
+    expect(names).not.toContain("manage_organization");
+  });
+
+  it("full registers all 13 tools", () => {
+    const fakeApi = makeFakeApi({ apiKey: "valid-key-12345", mode: "full" });
+    pluginEntry.register(fakeApi);
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
+  });
+
+  it("unknown mode value falls back to full (backward compat)", () => {
+    const fakeApi = makeFakeApi({ apiKey: "valid-key-12345", mode: "bogus" });
     pluginEntry.register(fakeApi);
     expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
   });
@@ -63,9 +137,7 @@ describe("auto_consult config", () => {
   it("is fully populated when user provides only apiKey", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" });
     pluginEntry.register(fakeApi);
-    // Plugin registers without throwing — auto_consult defaults apply internally
     expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
-    // Verify buildAutoConsult with no overrides covers all 15 categories
     const defaults = buildAutoConsult();
     expect(Object.keys(defaults)).toHaveLength(15);
     expect(Object.values(defaults).every((v) => v === true)).toBe(true);
@@ -89,13 +161,10 @@ describe("auto_consult config", () => {
     expect(result.content[0].text).toContain("ai_ml");
   });
 
-  it("enabled category passes through to client normally", async () => {
-    // ai_ml is NOT disabled — execute should attempt a real call
-    // We just verify it does NOT return the disabled message
+  it("enabled category passes through to client normally", () => {
     const autoConsult = buildAutoConsult({ security: false });
     expect(autoConsult.security).toBe(false);
     expect(autoConsult.ai_ml).toBe(true);
-    // Other categories untouched
     expect(autoConsult.cloud_infra).toBe(true);
   });
 });

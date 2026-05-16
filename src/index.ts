@@ -1,5 +1,7 @@
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { AlmuredClient } from "./client.js";
+import { checkConfigFilePerms } from "./file-perms.js";
+import type { SecretScanMode } from "./secret-scanner.js";
 import { makeBrowseConsultationsTool } from "./tools/browse-consultations.js";
 import { makeBrowseUnansweredTool } from "./tools/browse-unanswered.js";
 import { makeGetConsultationTool } from "./tools/get-consultation.js";
@@ -33,6 +35,7 @@ export const ALL_CATEGORIES = [
 ] as const;
 
 export type CategoryKey = (typeof ALL_CATEGORIES)[number];
+export type PluginMode = "readonly" | "standard" | "full";
 
 /** Build the effective auto_consult map: all categories default to true. */
 export function buildAutoConsult(
@@ -51,11 +54,50 @@ export function buildAutoConsult(
   return result;
 }
 
+const READONLY_TOOLS = [
+  "browse_consultations",
+  "browse_unanswered",
+  "get_consultation",
+  "get_expertise_badge",
+  "get_pricing",
+  "read_messages",
+];
+
+const STANDARD_ADDITIONAL = [
+  "ask_consultation",
+  "send_message",
+  "rate_response",
+  "report_content",
+  "manage_subscriptions",
+];
+
+const FULL_ADDITIONAL = ["set_pricing", "manage_organization"];
+
+/** Tools allowed in each mode. Exported so tests can pin the contract. */
+export function allowedTools(mode: PluginMode): Set<string> {
+  if (mode === "readonly") return new Set(READONLY_TOOLS);
+  if (mode === "standard") return new Set([...READONLY_TOOLS, ...STANDARD_ADDITIONAL]);
+  return new Set([...READONLY_TOOLS, ...STANDARD_ADDITIONAL, ...FULL_ADDITIONAL]);
+}
+
+function resolveMode(raw: unknown): PluginMode {
+  if (raw === "readonly" || raw === "standard" || raw === "full") return raw;
+  // Backward compat: omitted or unrecognized → full (matches v0.5.1 behavior).
+  return "full";
+}
+
+function resolveSecretScanning(raw: unknown): SecretScanMode {
+  if (raw === "block" || raw === "warn" || raw === "off") return raw;
+  return "block";
+}
+
 interface AlmuredPluginConfig {
   apiKey?: string;
   baseUrl?: string;
   timeoutMs?: number;
   auto_consult?: Record<string, boolean>;
+  mode?: PluginMode;
+  secretScanning?: SecretScanMode;
 }
 
 export default definePluginEntry({
@@ -78,26 +120,42 @@ export default definePluginEntry({
       );
     }
 
+    // Best-effort: warn if the OpenClaw config file is world/group-readable.
+    // No-op when OPENCLAW_CONFIG_PATH isn't set — the user may not be using
+    // a file-based config at all. Never fails plugin load.
+    checkConfigFilePerms(process.env.OPENCLAW_CONFIG_PATH);
+
+    const mode = resolveMode(config.mode);
+    const allowed = allowedTools(mode);
+    const secretScanning = resolveSecretScanning(config.secretScanning);
+
     const client = new AlmuredClient({
       apiKey,
       baseUrl: config.baseUrl,
       timeoutMs: config.timeoutMs,
+      secretScanning,
     });
 
     const autoConsult = buildAutoConsult(config.auto_consult);
 
-    api.registerTool(makeBrowseConsultationsTool(client));
-    api.registerTool(makeBrowseUnansweredTool(client));
-    api.registerTool(makeGetConsultationTool(client));
-    api.registerTool(makeAskConsultationTool(client, autoConsult));
-    api.registerTool(makeRateResponseTool(client));
-    api.registerTool(makeReportContentTool(client));
-    api.registerTool(makeGetExpertiseBadgeTool(client));
-    api.registerTool(makeManageSubscriptionsTool(client));
-    api.registerTool(makeSendMessageTool(client));
-    api.registerTool(makeReadMessagesTool(client));
-    api.registerTool(makeSetPricingTool(client));
-    api.registerTool(makeGetPricingTool(client));
-    api.registerTool(makeManageOrganizationTool(client));
+    const maybeRegister = (tool: { name: string }) => {
+      if (allowed.has(tool.name)) {
+        api.registerTool(tool as Parameters<typeof api.registerTool>[0]);
+      }
+    };
+
+    maybeRegister(makeBrowseConsultationsTool(client));
+    maybeRegister(makeBrowseUnansweredTool(client));
+    maybeRegister(makeGetConsultationTool(client));
+    maybeRegister(makeAskConsultationTool(client, autoConsult));
+    maybeRegister(makeRateResponseTool(client));
+    maybeRegister(makeReportContentTool(client));
+    maybeRegister(makeGetExpertiseBadgeTool(client));
+    maybeRegister(makeManageSubscriptionsTool(client));
+    maybeRegister(makeSendMessageTool(client));
+    maybeRegister(makeReadMessagesTool(client));
+    maybeRegister(makeSetPricingTool(client));
+    maybeRegister(makeGetPricingTool(client));
+    maybeRegister(makeManageOrganizationTool(client));
   },
 });

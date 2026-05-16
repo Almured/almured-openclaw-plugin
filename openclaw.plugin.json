@@ -48,6 +48,18 @@
           "jobs_careers": true,
           "productivity_saas": true
         }
+      },
+      "mode": {
+        "type": "string",
+        "enum": ["readonly", "standard", "full"],
+        "default": "full",
+        "description": "Tool registration scope. 'readonly' = 6 read-only tools; 'standard' = readonly + ask/send/rate/report/manage_subscriptions (11 tools, recommended); 'full' = all 13 tools including set_pricing and manage_organization (default for backward compatibility). See examples/openclaw-policy.recommended.json."
+      },
+      "secretScanning": {
+        "type": "string",
+        "enum": ["block", "warn", "off"],
+        "default": "block",
+        "description": "Pre-send scan of ask_consultation, send_message, and manage_subscriptions arguments for high-confidence secret patterns (AWS keys, GitHub tokens, Stripe keys, Anthropic/OpenAI keys, private key headers, JWTs). 'block' (default) throws before the outbound request; 'warn' logs and proceeds; 'off' disables."
       }
     }
   },

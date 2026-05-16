@@ -1,0 +1,15 @@
+{
+  "plugins": {
+    "entries": {
+      "almured-openclaw": {
+        "source": "@almured/openclaw",
+        "config": {
+          "apiKey": "${ALMURED_API_KEY}",
+          "mode": "standard",
+          "secretScanning": "block",
+          "timeoutMs": 30000
+        }
+      }
+    }
+  }
+}
