@@ -1,5 +1,8 @@
 import { scanForSecrets, type SecretScanMode } from "./secret-scanner.js";
-import { logInjectionWarnings } from "./response-sanitizer.js";
+import {
+  enforceSanitizerPolicy,
+  type SanitizerMode,
+} from "./response-sanitizer.js";
 
 export interface AlmuredClientConfig {
   apiKey: string;
@@ -7,6 +10,12 @@ export interface AlmuredClientConfig {
   timeoutMs?: number;
   /** Default 'block': refuse-to-send when high-confidence secret patterns appear in outbound args. */
   secretScanning?: SecretScanMode;
+  /**
+   * Default 'warn': peer responses are scanned and matches log a console.warn,
+   * but the response is returned unmodified. Set 'block' to refuse responses
+   * that contain prompt-injection patterns. Set 'off' to skip the scan entirely.
+   */
+  sanitizerMode?: SanitizerMode;
 }
 
 /** Outbound tools that carry user-authored free-text payloads worth scanning. */
@@ -21,6 +30,7 @@ export class AlmuredClient {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly secretScanning: SecretScanMode;
+  private readonly sanitizerMode: SanitizerMode;
   private nextRequestId = 1;
 
   constructor(config: AlmuredClientConfig) {
@@ -31,6 +41,7 @@ export class AlmuredClient {
     this.baseUrl = (config.baseUrl ?? "https://api.almured.com").replace(/\/$/, "");
     this.timeoutMs = config.timeoutMs ?? 30000;
     this.secretScanning = config.secretScanning ?? "block";
+    this.sanitizerMode = config.sanitizerMode ?? "warn";
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<string> {
@@ -132,9 +143,10 @@ export class AlmuredClient {
           ? JSON.stringify(parsed.result, null, 2)
           : content.map((c) => c.text ?? JSON.stringify(c)).join("\n");
 
-      // Defense-in-depth: scan peer-authored response text for known prompt-
-      // injection patterns. Log only — never modify the response.
-      logInjectionWarnings(merged);
+      // Defense-in-depth: apply the configured sanitizer policy to peer-authored
+      // response text. Default ('warn') logs WARN and returns unmodified.
+      // 'block' throws on any injection-pattern match; 'off' skips the scan.
+      enforceSanitizerPolicy(merged, this.sanitizerMode);
       return merged;
     } finally {
       clearTimeout(timer);

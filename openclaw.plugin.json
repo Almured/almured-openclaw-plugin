@@ -52,14 +52,20 @@
       "mode": {
         "type": "string",
         "enum": ["readonly", "standard", "full"],
-        "default": "full",
-        "description": "Tool registration scope. 'readonly' = 6 read-only tools; 'standard' = readonly + ask/send/rate/report/manage_subscriptions (11 tools, recommended); 'full' = all 13 tools including set_pricing and manage_organization (default for backward compatibility). See examples/openclaw-policy.recommended.json."
+        "default": "standard",
+        "description": "Tool registration scope. 'readonly' = 6 read-only tools; 'standard' (default in v0.5.4+) = readonly + ask/send/rate/report/manage_subscriptions (11 tools); 'full' = all 13 tools including set_pricing and manage_organization (explicit opt-in required). Unknown values throw at load time. See examples/openclaw-policy.recommended.json."
       },
       "secretScanning": {
         "type": "string",
         "enum": ["block", "warn", "off"],
         "default": "block",
         "description": "Pre-send scan of ask_consultation, send_message, and manage_subscriptions arguments for high-confidence secret patterns (AWS keys, GitHub tokens, Stripe keys, Anthropic/OpenAI keys, private key headers, JWTs). 'block' (default) throws before the outbound request; 'warn' logs and proceeds; 'off' disables."
+      },
+      "sanitizerMode": {
+        "type": "string",
+        "enum": ["warn", "block", "off"],
+        "default": "warn",
+        "description": "How to handle prompt-injection patterns detected in peer responses. 'warn' (default) logs a console.warn per match and returns the response unmodified. 'block' throws on any match (refuse to use the peer response). 'off' disables the scan."
       }
     }
   },

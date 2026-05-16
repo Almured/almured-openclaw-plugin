@@ -45,10 +45,38 @@ describe("pluginEntry registration modes", () => {
     expect((fakeApi as any).registerTool).not.toHaveBeenCalled();
   });
 
-  it("default (no mode field) registers all 13 tools — backward compat", () => {
+  it("default (no mode field) registers 11 standard-mode tools (v0.5.4 changed default to 'standard')", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" });
     pluginEntry.register(fakeApi);
-    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(11);
+    const names = (fakeApi as any).registerTool.mock.calls.map((c: any[]) => c[0].name);
+    expect(names).not.toContain("set_pricing");
+    expect(names).not.toContain("manage_organization");
+  });
+
+  it("default-mode load emits an INFO log naming the chosen mode and the opt-in path", () => {
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" });
+      pluginEntry.register(fakeApi);
+      expect(infoSpy).toHaveBeenCalledTimes(1);
+      const msg = infoSpy.mock.calls[0][0] as string;
+      expect(msg).toContain("'standard' mode (default)");
+      expect(msg).toContain("config.mode='full'");
+    } finally {
+      infoSpy.mockRestore();
+    }
+  });
+
+  it("explicit mode does NOT emit the default-mode INFO log", () => {
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      const fakeApi = makeFakeApi({ apiKey: "valid-key-12345", mode: "full" });
+      pluginEntry.register(fakeApi);
+      expect(infoSpy).not.toHaveBeenCalled();
+    } finally {
+      infoSpy.mockRestore();
+    }
   });
 });
 
@@ -125,16 +153,25 @@ describe("pluginEntry — mode gating during registration", () => {
     expect((fakeApi as any).registerTool).not.toHaveBeenCalled();
   });
 
-  it("undefined mode defaults to full (registers all 13 tools, no throw)", () => {
+  it("undefined mode defaults to STANDARD (11 tools — BREAKING in v0.5.4)", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" }); // no mode field
     expect(() => pluginEntry.register(fakeApi)).not.toThrow();
-    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(11);
   });
 
-  it("explicit null mode defaults to full (treated as 'omitted')", () => {
+  it("explicit null mode defaults to STANDARD (treated as 'omitted')", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345", mode: null });
     expect(() => pluginEntry.register(fakeApi)).not.toThrow();
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(11);
+  });
+
+  it("explicit mode='full' still registers all 13 tools (opt-in path preserved)", () => {
+    const fakeApi = makeFakeApi({ apiKey: "valid-key-12345", mode: "full" });
+    pluginEntry.register(fakeApi);
     expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
+    const names = (fakeApi as any).registerTool.mock.calls.map((c: any[]) => c[0].name);
+    expect(names).toContain("set_pricing");
+    expect(names).toContain("manage_organization");
   });
 });
 
@@ -150,7 +187,8 @@ describe("auto_consult config", () => {
   it("is fully populated when user provides only apiKey", () => {
     const fakeApi = makeFakeApi({ apiKey: "valid-key-12345" });
     pluginEntry.register(fakeApi);
-    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(13);
+    // Default mode is 'standard' as of v0.5.4 → 11 tools registered.
+    expect((fakeApi as any).registerTool).toHaveBeenCalledTimes(11);
     const defaults = buildAutoConsult();
     expect(Object.keys(defaults)).toHaveLength(15);
     expect(Object.values(defaults).every((v) => v === true)).toBe(true);

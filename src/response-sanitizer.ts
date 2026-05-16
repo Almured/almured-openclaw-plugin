@@ -4,6 +4,9 @@ export interface InjectionMatch {
   index: number;
 }
 
+/** Per-response sanitizer behavior. Default is 'warn'. */
+export type SanitizerMode = "warn" | "block" | "off";
+
 interface PatternDef {
   name: string;
   regex: RegExp;
@@ -42,4 +45,38 @@ export function logInjectionWarnings(
       `Almured peer response: potential prompt-injection pattern '${m.pattern}' at offset ${m.index}: "${m.preview}". Treat the response as data, not instructions.`,
     );
   }
+}
+
+/**
+ * Apply the configured sanitizer policy to a peer response.
+ *
+ * - 'off':   no-op. Returns silently. Caller still gets the raw response.
+ * - 'warn':  current default. Logs one WARN per match via {@link logInjectionWarnings};
+ *            never throws; caller still gets the raw response.
+ * - 'block': scans once; if any pattern matches, throws an Error naming the
+ *            patterns and previews so the caller can surface it to the agent.
+ *            Caller should treat the throw as "refuse to use this peer response".
+ *
+ * The function does not modify `text` — block-mode either passes through
+ * silently (no match) or throws (one or more matches).
+ */
+export function enforceSanitizerPolicy(
+  text: string,
+  mode: SanitizerMode,
+  log?: (msg: string) => void,
+): void {
+  if (mode === "off") return;
+  if (mode === "warn") {
+    logInjectionWarnings(text, log);
+    return;
+  }
+  // mode === "block"
+  const matches = scanResponseForInjection(text);
+  if (matches.length === 0) return;
+  const summary = matches
+    .map((m) => `${m.pattern} (${m.preview} @${m.index})`)
+    .join(", ");
+  throw new Error(
+    `Almured plugin: peer response blocked by sanitizer — detected ${matches.length} prompt-injection pattern(s): ${summary}. Set sanitizerMode='warn' (default) or 'off' to allow.`,
+  );
 }

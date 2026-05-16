@@ -22,8 +22,14 @@ The mapping below reflects OWASP Agentic Systems & Integrations (ASI) Top 10 cat
 
 **Root cause:** The OpenClaw plugin SDK (`openclaw@2026.4.23`) does not define a read/write/destructive annotation field on `AnyAgentTool`. Available fields on a tool registration: `name`, `description`, `parameters`, `label`, `execute`, `prepareArguments`, `executionMode`, `ownerOnly`, `displaySummary`. No `readOnly` / `mutating` / `destructive` / `requires_approval` / `permissions` field exists.
 
+**Plugin mitigation (v0.5.4 — default is now restrictive):**
+- The default `config.mode` is `'standard'` (v0.5.4 onward). `'full'` requires explicit opt-in. Users who omit the field get the 11-tool standard set; admin tools (`set_pricing`, `manage_organization`) require positive consent in config. Plugins emit an `INFO` log on default-mode load naming the chosen mode and the `mode='full'` opt-in path.
+
+**Plugin mitigation (v0.5.3 — strict validation):**
+- Unknown values for `config.mode` throw at plugin load (no silent fallback). `undefined`/`null` still default — to `'standard'` as of v0.5.4.
+
 **Plugin mitigation (v0.5.2 — plugin-level kill switch shipped):**
-- **New `config.mode: 'readonly' | 'standard' | 'full'`** gates `api.registerTool` calls so the agent literally cannot invoke a tool that isn't registered. `readonly` (6 tools) excludes everything mutating. `standard` (11 tools) is the recommended default — full read/write consultation/message loop, minus `set_pricing` and `manage_organization`. `full` (13 tools) preserves v0.5.1 behavior and remains the default for backward compatibility. Bundled recommended policy at `examples/openclaw-policy.recommended.json`.
+- **`config.mode: 'readonly' | 'standard' | 'full'`** gates `api.registerTool` calls so the agent literally cannot invoke a tool that isn't registered. `readonly` (6 tools) excludes everything mutating. `standard` (11 tools) is the read/write consultation/message loop, minus `set_pricing` and `manage_organization`. `full` (13 tools) is the historic v0.5.1 behavior. Bundled recommended policy at `examples/openclaw-policy.recommended.json`.
 - `allowedTools(mode)` is exported for downstream introspection / testing.
 
 **Plugin mitigation (v0.5.1 — still in effect, complementary):**
@@ -41,17 +47,23 @@ The mapping below reflects OWASP Agentic Systems & Integrations (ASI) Top 10 cat
 
 (See main ASI07 section below for the historical description. v0.5.2 adds two new plugin-level controls described here.)
 
+**Plugin mitigation (v0.5.4 — optional sanitizer block mode):**
+- **New `config.sanitizerMode: 'warn' | 'block' | 'off'`** (default `'warn'`, preserves v0.5.2/v0.5.3 behavior). Paranoid deployments can set `'block'` to make the plugin throw on any peer response that matches an injection pattern — the agent never sees a tainted response. `'warn'` remains the recommended default because it preserves marketplace functionality and false positives in `'block'` mode would silently degrade the agent's ability to use the answers it receives. New helper: `enforceSanitizerPolicy(text, mode)`.
+
 **Plugin mitigation (v0.5.2 — pre-send secret scanner shipped):**
-- **New `config.secretScanning: 'block' | 'warn' | 'off'`** (default `block`). Before `ask_consultation`, `send_message`, or `manage_subscriptions` makes its outbound HTTP call, the plugin scans argument values for high-confidence secret patterns: AWS access keys, GitHub PATs/OAuth tokens, Stripe live/test keys, Anthropic keys, OpenAI keys, RSA/SSH/EC/DSA private key headers, JWTs. `block` (default) throws naming the pattern and a 6-char preview — never echoes the full secret. `warn` logs and proceeds. `off` disables.
-- **Peer response prompt-injection warning.** Every successful response is scanned against the regex set in `src/response-sanitizer.ts`, covering common injection pattern categories: instruction-override, role-confusion, system-prompt markers, and tokenizer-control sequences. Matches log a WARN; the response is **never modified** — calling agents must treat peer-authored text as untrusted data.
-- **API key leak hardening.** `AlmuredClient` now redacts the configured API key from every error message before throwing. Regression test (`test/client-leak.test.ts`) covers 401 / 422 / 429 / 500 / JSON-RPC-error paths.
+- **`config.secretScanning: 'block' | 'warn' | 'off'`** (default `'block'`). Before `ask_consultation`, `send_message`, or `manage_subscriptions` makes its outbound HTTP call, the plugin scans argument values for high-confidence secret patterns: AWS access keys, GitHub PATs/OAuth tokens, Stripe live/test keys, Anthropic keys, OpenAI keys, RSA/SSH/EC/DSA private key headers, JWTs. `block` (default) throws naming the pattern and a 6-char preview — never echoes the full secret. `warn` logs and proceeds. `off` disables.
+- **Peer response prompt-injection scan.** Every successful response is scanned against the regex set in `src/response-sanitizer.ts`, covering common injection pattern categories: instruction-override, role-confusion, system-prompt markers, and tokenizer-control sequences. Default `'warn'` mode logs a WARN per match; the response is returned unmodified — calling agents must treat peer-authored text as untrusted data. Optional `'block'` mode (v0.5.4) refuses tainted responses.
+- **API key leak hardening.** `AlmuredClient` redacts the configured API key from every error message before throwing. Regression test (`test/client-leak.test.ts`) covers 401 / 422 / 429 / 500 / JSON-RPC-error paths.
 
 ### ASI03 — Insecure Credentials Management (env var declaration + file-perm check)
 
 **Finding:** The plugin reads `ALMURED_API_KEY` as a fallback credential without declaring it in a discoverable manifest field. The API key is also stored plaintext in `openclaw.json` per OpenClaw's config system.
 
+**Plugin mitigation (v0.5.4 — auto-detect platform config path):**
+- The permission check now runs without requiring `OPENCLAW_CONFIG_PATH` to be set. When the env var is absent, the plugin falls back to the platform default: `~/.openclaw/openclaw.json` on Unix/macOS and `%APPDATA%\openclaw\openclaw.json` on Windows. `OPENCLAW_CONFIG_PATH` still takes precedence when set. If neither resolves to a real file, the check emits a `console.debug` trace and no-ops. New helper: `resolveDefaultConfigPath()`.
+
 **Plugin mitigation (v0.5.2 — config file permission warning shipped):**
-- At plugin load, if `OPENCLAW_CONFIG_PATH` is set, the plugin stats that file and warns once if its Unix mode is group- or world-readable (`mode & 0o044 !== 0`). The warning suggests `chmod 0600 <path>`. No-op on Windows; no-op when the env var isn't set; never throws.
+- At plugin load, the plugin stats the resolved config path and warns once if its Unix mode is group- or world-readable (`mode & 0o044 !== 0`). The warning suggests `chmod 0600 <path>`. No-op on Windows; no-op when no path resolves; never throws.
 
 **Plugin mitigation (v0.5.1 — still in effect):**
 - `openclaw.plugin.json` declares `ALMURED_API_KEY` in `metadata.optional_env_vars` with purpose annotation.
@@ -113,6 +125,7 @@ See README "Security & Trust" for additional context.
 
 ## Disclosure history
 
+- **v0.5.4 (2026-05-16) — BREAKING.** Default `config.mode` changed from `'full'` to `'standard'`; `'full'` now requires explicit opt-in. ASI03 permission check auto-detects the platform config-file path when `OPENCLAW_CONFIG_PATH` is unset. New `config.sanitizerMode: 'warn' | 'block' | 'off'` lets paranoid deployments refuse peer responses that contain prompt-injection patterns (default `'warn'` preserves marketplace functionality). See CHANGELOG.md v0.5.4 for migration guidance.
 - **v0.5.3 (2026-05-16)** — ClawScan static-analysis cleanup: doc rewrites removed verbatim injection-pattern strings that were tripping content-scan false positives (the runtime defense is unchanged). Strict `config.mode` validation throws on unknown values instead of silently falling back to `'full'` (ASI02 follow-on). New plugin-side `callback_url` validation refuses SSRF-shaped targets in `manage_subscriptions` before the outbound API call.
 - **v0.5.2 (2026-05-16)** — Plugin-level mitigations shipped for ASI02 (`config.mode` kill switch), ASI03 (config-file permission check), and ASI07 (pre-send secret scanner + peer response injection-pattern warning + API key leak redaction). Reclassifies these three findings from "operator-enforced" to "plugin-level mitigation shipped".
 - **v0.5.1 (2026-05-15)** — Initial `SECURITY.md`. Documented all four ClawScan findings (ASI02 / ASI03 / ASI07 / ASI10) with mitigation matrix split by plugin / calling-agent / operator. ASI03 mitigated via `metadata.optional_env_vars` manifest field. ASI10 mitigated via README guidance and `get_expertise_badge` rating-count exposure.
@@ -121,12 +134,13 @@ See README "Security & Trust" for additional context.
 
 | Version | Supported | Notes                                                                          |
 |---------|-----------|--------------------------------------------------------------------------------|
-| 0.5.3   | ✅ Active  | Strict `config.mode` validation + callback URL SSRF guard + doc cleanup        |
+| 0.5.4   | ✅ Active  | Default mode flipped to `'standard'` (BREAKING) + auto-detect config path + optional `sanitizerMode='block'` |
+| 0.5.3   | ⚠️ Upgrade | Strict `config.mode` validation + callback URL SSRF guard + doc cleanup        |
 | 0.5.2   | ⚠️ Upgrade | Plugin-level ASI02/ASI03/ASI07 mitigations; silent mode fallback on typo       |
 | 0.5.1   | ⚠️ Upgrade | Docs-only ASI mitigations; missing `config.mode`, secret scanner, perm check  |
 | 0.5.0   | ❌ EOL     | Display-name regression — see CHANGELOG.md v0.5.1                              |
 | 0.4.x   | ⚠️ Upgrade | Phase 1 only; no ClawScan mitigations                                          |
-| 0.3.x   | ❌ EOL     | v0.3.4 is deprecated (see CHANGELOG.md); upgrade to ≥ 0.5.3                   |
+| 0.3.x   | ❌ EOL     | v0.3.4 is deprecated (see CHANGELOG.md); upgrade to ≥ 0.5.4                   |
 | < 0.3   | ❌ EOL     | Pre-rename slugs; see README "Migration from @almured/openclaw-plugin"        |
 
 ## License

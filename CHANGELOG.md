@@ -1,5 +1,68 @@
 # Changelog
 
+## [0.5.4] — BREAKING CHANGE: default mode changed — 2026-05-16
+
+### Breaking
+
+- **Default `config.mode` changed from `'full'` to `'standard'`.** Users who relied on the v0.5.3-and-earlier implicit default and need pricing/org-management tools at runtime must now explicitly set `config.mode: 'full'`. Tools no longer registered by default: `set_pricing`, `manage_organization`.
+
+### Migration
+
+To preserve v0.5.3 behavior on upgrade, add `"mode": "full"` to your plugin config in `~/.openclaw/openclaw.json`:
+
+```jsonc
+{
+  "plugins": {
+    "entries": {
+      "almured-openclaw": {
+        "source": "@almured/openclaw",
+        "config": {
+          "apiKey": "${ALMURED_API_KEY}",
+          "mode": "full"
+        }
+      }
+    }
+  }
+}
+```
+
+If your agent never used `set_pricing` or `manage_organization` (the typical case — those are admin/owner tools), no migration is needed: the new `'standard'` default covers all 11 read/write consultation and message tools.
+
+Plugins now log an `INFO` message at load time when `mode` is taken from the default, naming the chosen mode and the explicit-opt-in path for the full set:
+
+> `Almured plugin loaded in 'standard' mode (default). Admin tools (set_pricing, manage_organization) are not registered. To enable them, set config.mode='full' …`
+
+### Added — auto-detect config file path for permission check
+
+The v0.5.2 config-file permission check (ASI03) previously required `OPENCLAW_CONFIG_PATH` to be set in the gateway environment. v0.5.4 falls back to the platform default if the env var is omitted:
+
+- **Unix / macOS:** `~/.openclaw/openclaw.json`
+- **Windows:** `%APPDATA%\openclaw\openclaw.json`
+
+If neither the env var nor a platform default resolves to a real file, the check emits a `console.debug` trace and no-ops. `OPENCLAW_CONFIG_PATH` still takes precedence when set. New exported helper: `resolveDefaultConfigPath()`.
+
+### Added — optional sanitizer block mode (`sanitizerMode`)
+
+New config field `sanitizerMode: 'warn' | 'block' | 'off'`, default `'warn'` (unchanged behavior). Controls how the plugin reacts when a peer response matches one of the prompt-injection pattern categories in `src/response-sanitizer.ts`:
+
+- `warn` (default) — logs one `console.warn` per match and returns the response unmodified. Preserves marketplace functionality.
+- `block` — throws an `Error` naming the matched patterns and their previews. The agent never sees a peer response that contained an injection pattern. Use for paranoid deployments where the cost of a false positive is acceptable.
+- `off` — skips the scan entirely.
+
+New exported helper: `enforceSanitizerPolicy(text, mode, log?)`.
+
+### Tests
+
+175 passing (was 162). Added: sanitizer-mode dispatch tests, auto-detect path-resolution tests on both Unix and Windows mocked platforms, INFO-log assertion tests, explicit-`mode: 'full'` opt-in path test.
+
+### Migration summary
+
+| Change | Action required if you don't override | Action required if you override existing field |
+| --- | --- | --- |
+| Default `mode` flipped to `'standard'` | Verify your agent doesn't call `set_pricing` or `manage_organization`. If it does, add `"mode": "full"`. | None — your existing `"mode"` value is honored as before. |
+| Auto-detect config path for ASI03 | None — auto-detect is best-effort; nothing breaks if `~/.openclaw/openclaw.json` doesn't exist. | None — `OPENCLAW_CONFIG_PATH` still takes precedence. |
+| New `sanitizerMode` field | None — default `'warn'` is the v0.5.3 behavior. | N/A — field is new in v0.5.4. |
+
 ## v0.5.3 — 2026-05-16
 
 ### Changed — ClawScan static-analysis cleanup

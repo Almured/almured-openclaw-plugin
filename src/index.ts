@@ -2,6 +2,7 @@ import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import { AlmuredClient } from "./client.js";
 import { checkConfigFilePerms } from "./file-perms.js";
 import type { SecretScanMode } from "./secret-scanner.js";
+import type { SanitizerMode } from "./response-sanitizer.js";
 import { makeBrowseConsultationsTool } from "./tools/browse-consultations.js";
 import { makeBrowseUnansweredTool } from "./tools/browse-unanswered.js";
 import { makeGetConsultationTool } from "./tools/get-consultation.js";
@@ -80,20 +81,29 @@ export function allowedTools(mode: PluginMode): Set<string> {
   return new Set([...READONLY_TOOLS, ...STANDARD_ADDITIONAL, ...FULL_ADDITIONAL]);
 }
 
+/** Default mode used when `config.mode` is omitted. */
+export const DEFAULT_MODE: PluginMode = "standard";
+
 function resolveMode(raw: unknown): PluginMode {
-  if (raw === undefined || raw === null) return "full";
+  if (raw === undefined || raw === null) return DEFAULT_MODE;
   if (raw === "readonly" || raw === "standard" || raw === "full") return raw;
-  // Fail-fast on unknown values. Silent fallback masked typos / stale configs
-  // that intended a restrictive mode but landed on full by accident — flagged
-  // by ClawScan ASI02.
+  // Fail-fast on unknown values. Silent fallback masks typos / stale configs
+  // that intended a restrictive mode and accidentally land elsewhere — see
+  // ClawScan ASI02 (v0.5.3 introduced strict validation; v0.5.4 changed the
+  // default from 'full' to 'standard').
   throw new Error(
-    `Almured plugin: invalid config.mode ${JSON.stringify(raw)}. Valid values: 'readonly', 'standard', 'full' (omit for default 'full').`,
+    `Almured plugin: invalid config.mode ${JSON.stringify(raw)}. Valid values: 'readonly', 'standard', 'full' (omit for default '${DEFAULT_MODE}').`,
   );
 }
 
 function resolveSecretScanning(raw: unknown): SecretScanMode {
   if (raw === "block" || raw === "warn" || raw === "off") return raw;
   return "block";
+}
+
+function resolveSanitizerMode(raw: unknown): SanitizerMode {
+  if (raw === "warn" || raw === "block" || raw === "off") return raw;
+  return "warn";
 }
 
 interface AlmuredPluginConfig {
@@ -103,6 +113,7 @@ interface AlmuredPluginConfig {
   auto_consult?: Record<string, boolean>;
   mode?: PluginMode;
   secretScanning?: SecretScanMode;
+  sanitizerMode?: SanitizerMode;
 }
 
 export default definePluginEntry({
@@ -126,19 +137,28 @@ export default definePluginEntry({
     }
 
     // Best-effort: warn if the OpenClaw config file is world/group-readable.
-    // No-op when OPENCLAW_CONFIG_PATH isn't set — the user may not be using
-    // a file-based config at all. Never fails plugin load.
+    // Prefers OPENCLAW_CONFIG_PATH; falls back to the platform's standard
+    // location (~/.openclaw/openclaw.json on Unix, %APPDATA%\openclaw\
+    // openclaw.json on Windows). Never fails plugin load.
     checkConfigFilePerms(process.env.OPENCLAW_CONFIG_PATH);
 
+    const modeExplicit = config.mode !== undefined && config.mode !== null;
     const mode = resolveMode(config.mode);
+    if (!modeExplicit) {
+      console.info(
+        `Almured plugin loaded in '${mode}' mode (default). Admin tools (set_pricing, manage_organization) are not registered. To enable them, set config.mode='full' in plugins.entries.almured-openclaw.config.`,
+      );
+    }
     const allowed = allowedTools(mode);
     const secretScanning = resolveSecretScanning(config.secretScanning);
+    const sanitizerMode = resolveSanitizerMode(config.sanitizerMode);
 
     const client = new AlmuredClient({
       apiKey,
       baseUrl: config.baseUrl,
       timeoutMs: config.timeoutMs,
       secretScanning,
+      sanitizerMode,
     });
 
     const autoConsult = buildAutoConsult(config.auto_consult);
