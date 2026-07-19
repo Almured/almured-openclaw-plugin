@@ -47,7 +47,7 @@ export class AlmuredClient {
   async callTool(name: string, args: Record<string, unknown>): Promise<string> {
     // Defense-in-depth (ASI07): scan outbound args for high-confidence secrets
     // on the small set of tools that carry user-authored free-text. Default
-    // 'block' refuses to send. Read tools are not scanned — their args are
+    // 'block' refuses to send. Read tools are not scanned - their args are
     // structured filters, not user prose, and scanning them risks blocking
     // legitimate categorical questions.
     if (SECRET_SCAN_TOOLS.has(name) && this.secretScanning !== "off") {
@@ -58,13 +58,13 @@ export class AlmuredClient {
           .join(", ");
         if (this.secretScanning === "block") {
           throw new Error(
-            `Almured: outbound secret-scan blocked '${name}' — detected ${matches.length} potential secret(s): ${summary}. Remove the value, or set secretScanning='warn' / 'off' to override.`,
+            `Almured: outbound secret-scan blocked '${name}' - detected ${matches.length} potential secret(s): ${summary}. Remove the value, or set secretScanning='warn' / 'off' to override.`,
           );
         }
         // warn mode: log per match, then send.
         for (const m of matches) {
           console.warn(
-            `Almured: outbound secret-scan WARN on '${name}' — pattern '${m.pattern}' (${m.preview}) at index ${m.index}. Sending anyway because secretScanning='warn'.`,
+            `Almured: outbound secret-scan WARN on '${name}' - pattern '${m.pattern}' (${m.preview}) at index ${m.index}. Sending anyway because secretScanning='warn'.`,
           );
         }
       }
@@ -110,11 +110,13 @@ export class AlmuredClient {
       }
       if (status === 406) {
         throw new Error(
-          "Almured: transport mismatch. The plugin sends streamable-HTTP — check your Almured server version.",
+          "Almured: transport mismatch. The plugin sends streamable-HTTP - check your Almured server version.",
         );
       }
       if (status === 422) {
-        throw new Error(this.redact(`Almured: invalid tool arguments — ${text.slice(0, 300)}`));
+        throw new Error(
+          this.redact(`Almured: invalid tool arguments - ${text.slice(0, 300)}`),
+        );
       }
       if (status === 429) {
         throw new Error(
@@ -122,7 +124,9 @@ export class AlmuredClient {
         );
       }
       if (status >= 400) {
-        throw new Error(this.redact(`Almured: HTTP ${status} — ${text.slice(0, 500)}`));
+        throw new Error(
+          this.redact(`Almured: HTTP ${status} - ${text.slice(0, 500)}`),
+        );
       }
 
       const parsed = JSON.parse(text) as {
@@ -133,7 +137,7 @@ export class AlmuredClient {
       if (parsed.error) {
         const hint = parsed.error.data?.hint;
         throw new Error(
-          this.redact(`Almured: ${parsed.error.message}${hint ? ` — ${hint}` : ""}`),
+          this.redact(`Almured: ${parsed.error.message}${hint ? ` - ${hint}` : ""}`),
         );
       }
 
@@ -166,13 +170,27 @@ export class AlmuredClient {
 
   private async parseSSEResponse(response: Response): Promise<string> {
     const raw = await response.text();
-    const lines = raw.split("\n");
-    let lastDataLine = "";
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        lastDataLine = line.slice(6);
+    let currentEvent: string[] = [];
+    let lastEvent = "";
+
+    for (const line of raw.split(/\r?\n/)) {
+      if (line === "") {
+        if (currentEvent.length > 0) {
+          lastEvent = currentEvent.join("\n");
+          currentEvent = [];
+        }
+        continue;
+      }
+
+      if (line.startsWith("data:")) {
+        currentEvent.push(line.slice(5).replace(/^ /, ""));
       }
     }
-    return lastDataLine || raw;
+
+    if (currentEvent.length > 0) {
+      lastEvent = currentEvent.join("\n");
+    }
+
+    return lastEvent || raw;
   }
 }
