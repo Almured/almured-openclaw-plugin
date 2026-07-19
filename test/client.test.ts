@@ -123,11 +123,11 @@ describe("AlmuredClient.callTool", () => {
     fetchSpy.mockResolvedValue(makeResponse(200, payload));
     const client = new AlmuredClient({ apiKey: "sk_live_test_key" });
     await expect(client.callTool("bad_tool", {})).rejects.toThrow(
-      "Tool not found — Check tool name",
+      "Tool not found - Check tool name",
     );
   });
 
-  it("parses SSE response and extracts last data line", async () => {
+  it("parses an SSE response", async () => {
     const sseBody = [
       'event: message',
       'data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"SSE result"}]}}',
@@ -137,6 +137,28 @@ describe("AlmuredClient.callTool", () => {
     const client = new AlmuredClient({ apiKey: "sk_live_test_key" });
     const result = await client.callTool("get_expertise_badge", {});
     expect(result).toBe("SSE result");
+  });
+
+  it("parses valid SSE data fields without a space", async () => {
+    const sseBody =
+      'data:{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"No-space SSE result"}]}}\n\n';
+    fetchSpy.mockResolvedValue(makeResponse(200, sseBody, "text/event-stream"));
+    const client = new AlmuredClient({ apiKey: "sk_live_test_key" });
+    const result = await client.callTool("get_expertise_badge", {});
+    expect(result).toBe("No-space SSE result");
+  });
+
+  it("returns the last complete SSE event", async () => {
+    const firstEvent =
+      'data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"First result"}]}}';
+    const lastEvent =
+      'data: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"Last result"}]}}';
+    fetchSpy.mockResolvedValue(
+      makeResponse(200, `${firstEvent}\r\n\r\n${lastEvent}\r\n\r\n`, "text/event-stream"),
+    );
+    const client = new AlmuredClient({ apiKey: "sk_live_test_key" });
+    const result = await client.callTool("get_expertise_badge", {});
+    expect(result).toBe("Last result");
   });
 
   it("sends Authorization header with Bearer token", async () => {
